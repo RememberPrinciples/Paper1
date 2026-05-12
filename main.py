@@ -2,7 +2,7 @@ import torch
 import time
 from transformers import AutoModelForCausalLM, AutoTokenizer, DynamicCache
 
-# 引入你的自定义模块 (请确保 tree_topology.py 已经更新为通用的 k-ary 版本)
+# 引入你的自定义模块
 from tree_topology import build_tree_topology, generate_tree_attention_mask, generate_position_ids
 from draft_generator import generate_draft_tree
 from target_verifier import verify_tree_and_accept
@@ -10,8 +10,8 @@ from target_verifier import verify_tree_and_accept
 # ==========================================
 # 🚀 中央超参数配置区 (改这里，全局自动适配)
 # ==========================================
-DEPTH = 4         # 树的深度 (向未来推测的步数)
-BRANCH = 3           # 分叉数 (每个节点的 Top-K 候选数)
+DEPTH = 6            # 树的深度 (向未来推测的步数)
+BRANCH = 4           # 分叉数 (每个节点的 Top-K 候选数)
 MAX_NEW_TOKENS = 50  # 最大生成长度
 # ==========================================
 
@@ -32,7 +32,6 @@ def main():
 
     # 1. 自动计算拓扑结构
     print(f"\n正在构建 {BRANCH}叉树, 深度为 {DEPTH}...")
-    # 注意：这里的 build_tree_topology 需要是你更新后的通用版本
     parents, total_nodes = build_tree_topology(depth=DEPTH, branch=BRANCH)
     print(f"树的总节点数: {total_nodes} 个")
 
@@ -171,6 +170,13 @@ def main():
     baseline_avg_decode_time = baseline_decode_total_time / baseline_decode_steps if baseline_decode_steps > 0 else 0
     baseline_tps = baseline_decode_steps / baseline_decode_total_time if baseline_decode_total_time > 0 else 0
 
+    # =====================================================================
+    # 💡 新增：计算理论极限性能 (假设验证耗时 == 基线前向耗时)
+    # =====================================================================
+    theoretical_total_verify_time = sd_valid_rounds * baseline_avg_decode_time
+    theoretical_sd_total_time = total_draft_time + theoretical_total_verify_time
+    theoretical_sd_tps = total_accepted_tokens_count / theoretical_sd_total_time if theoretical_sd_total_time > 0 else 0
+
 
     # =====================================================================
     # 📊 终极对决：性能对比报告
@@ -185,17 +191,25 @@ def main():
     print(f"  • 纯 Decode 阶段吞吐量: {baseline_tps:.2f} Tokens/秒")
     print(f"  • 生成结果: \033[90m{tokenizer.decode(input_ids_base[0])}\033[0m")
 
-    print("\n【2】推测解码 (SD) 表现：")
+    print("\n【2】推测解码 (SD) 真实表现：")
     print(f"  • 拓扑结构: {BRANCH}叉 {DEPTH}层 (验证节点数: {total_nodes})")
     print(f"  • 平均起草耗时: {total_draft_time/sd_valid_rounds:.4f} 秒/轮")
-    print(f"  • 平均验证耗时: {total_verify_time/sd_valid_rounds:.4f} 秒/轮")
+    print(f"  • 真实平均验证耗时: {total_verify_time/sd_valid_rounds:.4f} 秒/轮")
     print(f"  • 平均每轮接受: {total_accepted_tokens_count / sd_valid_rounds:.2f} Tokens/轮")
     print(f"  • 综合生成吞吐量: {sd_tps:.2f} Tokens/秒")
     print(f"  • 生成结果: \033[96m{tokenizer.decode(input_ids_sd[0])}\033[0m")
 
+    print("\n【3】🚀 理论极限 (理想定制 CUDA 算子加持)：")
+    print(f"  • 假设单次树状验证耗时 == 基线单次前向耗时 ({baseline_avg_decode_time:.4f} 秒/轮)")
+    print(f"  • 理论综合生成吞吐量: \033[92m{theoretical_sd_tps:.2f} Tokens/秒\033[0m")
+
     print("\n" + "="*50)
-    speedup = sd_tps / baseline_tps if baseline_tps > 0 else 0
-    print(f"🚀 终极结论：推测解码带来了 \033[93m{speedup:.2f} 倍\033[0m 的真实加速！")
+    real_speedup = sd_tps / baseline_tps if baseline_tps > 0 else 0
+    theoretical_speedup = theoretical_sd_tps / baseline_tps if baseline_tps > 0 else 0
+    
+    print(f"🚀 终极结论：")
+    print(f"    当前真实加速比: \033[93m{real_speedup:.2f} 倍\033[0m")
+    print(f"    理论极限加速比: \033[92m{theoretical_speedup:.2f} 倍\033[0m (排除了框架掩码开销后)")
     print("="*50 + "\n")
 
 if __name__ == "__main__":
