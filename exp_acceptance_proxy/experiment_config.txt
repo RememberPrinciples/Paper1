@@ -1,0 +1,17 @@
+target_model: ./Model/Llama-7B-Chat-Target
+draft_model: ./Model/Llama-68M-Draft
+device: cuda:0
+torch_dtype: float16
+attn_implementation: eager
+branch: 4
+depth: 4
+max_new_tokens: 48
+max_rounds_per_prompt: 8
+prompts_file: 
+n_bins: 10
+bin_mode: quantile
+seed: 2026
+out_dir: ./exp_acceptance_proxy
+plot_langs: en,zh
+chinese_font: 
+resolved_chinese_font_path: /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
