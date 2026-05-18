@@ -1,8 +1,0 @@
-Acceptance-proxy correlation summary
-====================================
-
-all: n=10880, local_pos=0.1555, path_pos=0.0051, local_spearman=0.4299, local_auc=0.8424, path_spearman=0.1203, path_auc=0.9895
-depth=1: n=128, local_pos=0.1875, path_pos=0.1875, local_spearman=0.5049, local_auc=0.8734, path_spearman=0.5049, path_auc=0.8734
-depth=2: n=512, local_pos=0.1484, path_pos=0.0293, local_spearman=0.4866, local_auc=0.8951, path_spearman=0.2685, path_auc=0.9596
-depth=3: n=2048, local_pos=0.1455, path_pos=0.0044, local_spearman=0.4299, local_auc=0.8520, path_spearman=0.1100, path_auc=0.9799
-depth=4: n=8192, local_pos=0.1580, path_pos=0.0009, local_spearman=0.4249, local_auc=0.8364, path_spearman=0.0495, path_auc=0.9891

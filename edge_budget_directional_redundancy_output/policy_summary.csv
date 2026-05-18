@@ -1,5 +1,0 @@
-policy,avg_N_acc,avg_time_ms,avg_throughput,avg_models_used,no_delay_rate,subset_use_rate,contained_waste_rate,new_use_rate_after_entry,speedup_vs_best_all
-proposed,8.149572,85.571525,0.094871,2.50625,1.0,0.06875,0.0,0.864198,1.534516
-random_residual,7.600899,85.80888,0.088428,2.63125,1.0,0.5125,0.15,0.419753,1.4303
-primary_only,6.02321,86.380363,0.06968,1.0,1.0,0.0625,0.0,0.0,1.127058
-best_all,6.735238,111.960296,0.061825,1.0,1.0,0.0625,0.0,0.0,1.0

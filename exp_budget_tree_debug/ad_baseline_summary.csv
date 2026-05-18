@@ -1,2 +1,0 @@
-method,budget,rounds,total_generated_tokens,total_time_s,effective_tps,latency_per_token_s,avg_decode_time_s
-ad,0,64,64.0,1.3931187763810158,45.94008858760518,0.02176748088095337,0.02176748088095337
