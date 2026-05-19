@@ -1,0 +1,58 @@
+{
+  "rows": 75000,
+  "contexts": [
+    64,
+    128,
+    256
+  ],
+  "source_counts": {
+    "chat": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    },
+    "code": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    },
+    "json_config": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    },
+    "math": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    },
+    "natural_language": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    }
+  },
+  "natural_prefix_all_true": true,
+  "probability_ranges_ok": true,
+  "sampled_alpha_vs_empirical_by_ctx": {
+    "64": {
+      "empirical": 0.31436,
+      "mean_alpha": 0.31509166955947876,
+      "abs_diff": 0.000731669559478787
+    },
+    "128": {
+      "empirical": 0.33164,
+      "mean_alpha": 0.3320425748825073,
+      "abs_diff": 0.00040257488250733386
+    },
+    "256": {
+      "empirical": 0.33404,
+      "mean_alpha": 0.3340066075325012,
+      "abs_diff": 3.3392467498782885e-05
+    }
+  },
+  "tokenizer_model_md5": {
+    "Model/Llama-7B-Chat-Target/tokenizer.model": "eeec4125e9c7560836b4873b6f8e3025",
+    "Model/Llama-68M-Draft/tokenizer.model": "eeec4125e9c7560836b4873b6f8e3025"
+  }
+}

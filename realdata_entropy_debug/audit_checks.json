@@ -1,0 +1,47 @@
+{
+  "rows": 200,
+  "contexts": [
+    64,
+    128
+  ],
+  "source_counts": {
+    "chat": {
+      "64": 20,
+      "128": 20
+    },
+    "code": {
+      "64": 20,
+      "128": 20
+    },
+    "json_config": {
+      "64": 20,
+      "128": 20
+    },
+    "math": {
+      "64": 20,
+      "128": 20
+    },
+    "natural_language": {
+      "64": 20,
+      "128": 20
+    }
+  },
+  "natural_prefix_all_true": true,
+  "probability_ranges_ok": true,
+  "sampled_alpha_vs_empirical_by_ctx": {
+    "64": {
+      "empirical": 0.29,
+      "mean_alpha": 0.31971314549446106,
+      "abs_diff": 0.02971314549446108
+    },
+    "128": {
+      "empirical": 0.33,
+      "mean_alpha": 0.326476126909256,
+      "abs_diff": 0.003523873090744034
+    }
+  },
+  "tokenizer_model_md5": {
+    "Model/Llama-7B-Chat-Target/tokenizer.model": "eeec4125e9c7560836b4873b6f8e3025",
+    "Model/Llama-68M-Draft/tokenizer.model": "eeec4125e9c7560836b4873b6f8e3025"
+  }
+}

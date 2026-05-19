@@ -1,0 +1,39 @@
+{
+  "design": "balanced natural-prefix; no random middle-window truncation",
+  "context_lens": [
+    64,
+    128,
+    256
+  ],
+  "samples_per_type": 1000,
+  "source_types": [
+    "natural_language",
+    "chat",
+    "code",
+    "math",
+    "json_config"
+  ],
+  "total_token_records": 15000,
+  "per_context_records": 5000,
+  "seed": 20260519,
+  "dtype": "fp16",
+  "attn_implementation": "eager",
+  "temperature": 1.0,
+  "target_path": "Model/Llama-7B-Chat-Target",
+  "draft_path": "Model/Llama-68M-Draft",
+  "vocab_size": 32000,
+  "elapsed_sec": 125.99908423423767,
+  "cuda_peak_memory_gb": 15.54365696,
+  "outputs": [
+    "overall_entropy_acceptance_by_context.png/svg/pdf",
+    "per_source_exact_accept_ctx*.png/svg/pdf",
+    "detailed_controls_ctx*.png/svg/pdf",
+    "source_type_counts.png/svg/pdf",
+    "token_level_records.csv",
+    "entropy_bin_summary_by_context.csv",
+    "entropy_bin_summary_by_context_source.csv",
+    "source_type_summary.csv",
+    "correlations.csv",
+    "context_previews.json"
+  ]
+}

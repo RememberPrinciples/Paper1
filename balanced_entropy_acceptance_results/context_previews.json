@@ -1,0 +1,152 @@
+[
+  {
+    "source_type": "natural_language",
+    "source_name": "natural_template_1223",
+    "num_tokens": 291,
+    "context_preview_text": "Title: A concise note on history of printing\n\nThis research summary discusses history of printing. It will describe the historical background, the current method, and a possible future improvement. The main point is that a reliable conclusion requires both context and measurement. For example, a system may look effective under one benchmark but behave differently when the input distribution changes. A careful analysis therefore separates the mechanism, the data, and the evaluation metric. In practice, this separation helps readers"
+  },
+  {
+    "source_type": "natural_language",
+    "source_name": "natural_template_1416",
+    "num_tokens": 292,
+    "context_preview_text": "Title: A concise note on ancient navigation\n\nThis short encyclopedia entry discusses ancient navigation. It will compare the idea with a familiar everyday process before giving a concrete application. The main point is that a reliable conclusion requires both context and measurement. For example, a system may look effective under one benchmark but behave differently when the input distribution changes. A careful analysis therefore separates the mechanism, the data, and the evaluation metric. In practice, this separation helps"
+  },
+  {
+    "source_type": "natural_language",
+    "source_name": "natural_template_78",
+    "num_tokens": 292,
+    "context_preview_text": "Title: A concise note on astronomy\n\nThis short encyclopedia entry discusses astronomy. It will first define the central concept, then describe two practical examples and one limitation. The main point is that a reliable conclusion requires both context and measurement. For example, a system may look effective under one benchmark but behave differently when the input distribution changes. A careful analysis therefore separates the mechanism, the data, and the evaluation metric. In practice, this separation helps"
+  },
+  {
+    "source_type": "natural_language",
+    "source_name": "natural_template_974",
+    "num_tokens": 291,
+    "context_preview_text": "Title: A concise note on distributed systems\n\nThis expository article discusses distributed systems. It will explain why measurement is difficult and list the assumptions that make the analysis tractable. The main point is that a reliable conclusion requires both context and measurement. For example, a system may look effective under one benchmark but behave differently when the input distribution changes. A careful analysis therefore separates the mechanism, the data, and the evaluation metric. In practice, this separation helps readers"
+  },
+  {
+    "source_type": "natural_language",
+    "source_name": "natural_template_1457",
+    "num_tokens": 292,
+    "context_preview_text": "Title: A concise note on urban transportation\n\nThis expository article discusses urban transportation. It will describe the historical background, the current method, and a possible future improvement. The main point is that a reliable conclusion requires both context and measurement. For example, a system may look effective under one benchmark but behave differently when the input distribution changes. A careful analysis therefore separates the mechanism, the data, and the evaluation metric. In practice, this separation helps"
+  },
+  {
+    "source_type": "chat",
+    "source_name": "chat_template_1941",
+    "num_tokens": 277,
+    "context_preview_text": "User: Please help debug a Python function that computes entropy. Answer in Chinese, but keep technical terms in English when useful.\nAssistant: Certainly. The key idea is to separate the mechanism from the measurement. I will first describe the setup, then discuss the expected behavior, and finally point out common failure cases. This makes the answer easier to verify and helps avoid drawing conclusions from a single noisy observation.\nUser: Can you make the procedure more"
+  },
+  {
+    "source_type": "chat",
+    "source_name": "chat_template_1944",
+    "num_tokens": 262,
+    "context_preview_text": "User: 我正在做一个实验，请你explain speculative decoding to a graduate student。Give one simple example before the detailed explanation.\nAssistant: 好的。首先我会明确实验目标，然后说明可控变量和观测指标。接下来需要检查数据来源是否����"
+  },
+  {
+    "source_type": "chat",
+    "source_name": "chat_template_1066",
+    "num_tokens": 272,
+    "context_preview_text": "User: Please explain how to interpret confidence intervals. Start with the short answer, then give the reasoning.\nAssistant: Certainly. The key idea is to separate the mechanism from the measurement. I will first describe the setup, then discuss the expected behavior, and finally point out common failure cases. This makes the answer easier to verify and helps avoid drawing conclusions from a single noisy observation.\nUser: Can you make the procedure more concrete?\nAssistant"
+  },
+  {
+    "source_type": "chat",
+    "source_name": "chat_template_1787",
+    "num_tokens": 273,
+    "context_preview_text": "User: Please design a small ablation study for a language model. Be precise and mention possible caveats.\nAssistant: Certainly. The key idea is to separate the mechanism from the measurement. I will first describe the setup, then discuss the expected behavior, and finally point out common failure cases. This makes the answer easier to verify and helps avoid drawing conclusions from a single noisy observation.\nUser: Can you make the procedure more concrete?\nAss"
+  },
+  {
+    "source_type": "chat",
+    "source_name": "chat_template_623",
+    "num_tokens": 273,
+    "context_preview_text": "User: Please design a small ablation study for a language model. Be precise and mention possible caveats.\nAssistant: Certainly. The key idea is to separate the mechanism from the measurement. I will first describe the setup, then discuss the expected behavior, and finally point out common failure cases. This makes the answer easier to verify and helps avoid drawing conclusions from a single noisy observation.\nUser: Can you make the procedure more concrete?\nAss"
+  },
+  {
+    "source_type": "code",
+    "source_name": "code_template_1948",
+    "num_tokens": 371,
+    "context_preview_text": "# Bash helper for a reproducible run\nset -euo pipefail\nMODEL_ROOT=\"./Model\"\nOUTPUT_DIR=\"./results\"\nCONTEXT_LEN=64\npython balanced_entropy_acceptance_experiment.py \\\n  --model-root \"${MODEL_ROOT}\" \\\n  --output-dir \"${OUTPUT_DIR}\" \\\n  --context-lens \"${CONTEXT_LE"
+  },
+  {
+    "source_type": "code",
+    "source_name": "code_template_1472",
+    "num_tokens": 376,
+    "context_preview_text": "def compute_entropy(path, default=None):\n    path = Path(path)\n    if not path.exists():\n        return default\n    with path.open('r', encoding='utf-8') as handle:\n        data = json.load(handle)\n    result = {}\n    for key, value in data.items():\n        if isinstance(value, (int, float, str)):\n            result[key"
+  },
+  {
+    "source_type": "code",
+    "source_name": "code_template_1868",
+    "num_tokens": 371,
+    "context_preview_text": "# Bash helper for a reproducible run\nset -euo pipefail\nMODEL_ROOT=\"./Model\"\nOUTPUT_DIR=\"./results\"\nCONTEXT_LEN=64\npython balanced_entropy_acceptance_experiment.py \\\n  --model-root \"${MODEL_ROOT}\" \\\n  --output-dir \"${OUTPUT_DIR}\" \\\n  --context-lens \"${CONTEXT_LE"
+  },
+  {
+    "source_type": "code",
+    "source_name": "code_template_936",
+    "num_tokens": 399,
+    "context_preview_text": "class MetricAccumulator:\n    def __init__(self):\n        self.values = []\n        self.names = []\n\n    def add(self, name, value):\n        self.names.append(str(name))\n        self.values.append(float(value))\n\n    def summary(self):\n        if not self.values:\n            return {'mean': 0.0, 'n': "
+  },
+  {
+    "source_type": "code",
+    "source_name": "code_template_843",
+    "num_tokens": 371,
+    "context_preview_text": "# Bash helper for a reproducible run\nset -euo pipefail\nMODEL_ROOT=\"./Model\"\nOUTPUT_DIR=\"./results\"\nCONTEXT_LEN=64\npython balanced_entropy_acceptance_experiment.py \\\n  --model-root \"${MODEL_ROOT}\" \\\n  --output-dir \"${OUTPUT_DIR}\" \\\n  --context-lens \"${CONTEXT_LE"
+  },
+  {
+    "source_type": "math",
+    "source_name": "math_template_1778",
+    "num_tokens": 268,
+    "context_preview_text": "例题：设函数 f(x) = 7x^2 + 12x + 1。求导数并判断在正区间上的变化趋势。\n解：首先利用幂函数求导公式，得到 f'(x) = 14x + 12。因为当 x 大于零时导数为正，"
+  },
+  {
+    "source_type": "math",
+    "source_name": "math_template_715",
+    "num_tokens": 281,
+    "context_preview_text": "Optimization example. We minimize L(w) = (w - 9)^2 + 15/10. The gradient is 2(w - 9), so the stationary point is w = 9. Since the second derivative is positive, this stationary point is the unique minimizer. A gradient descent algorithm with a small step size will move toward this value. Next, consider a second example with four outcomes. Let the prob"
+  },
+  {
+    "source_type": "math",
+    "source_name": "math_template_799",
+    "num_tokens": 281,
+    "context_preview_text": "Optimization example. We minimize L(w) = (w - 3)^2 + 16/10. The gradient is 2(w - 3), so the stationary point is w = 3. Since the second derivative is positive, this stationary point is the unique minimizer. A gradient descent algorithm with a small step size will move toward this value. Next, consider a second example with four outcomes. Let the prob"
+  },
+  {
+    "source_type": "math",
+    "source_name": "math_template_1930",
+    "num_tokens": 268,
+    "context_preview_text": "例题：设函数 f(x) = 5x^2 + 17x + 1。求导数并判断在正区间上的变化趋势。\n解：首先利用幂函数求导公式，得到 f'(x) = 10x + 17。因为当 x 大于零时导数为正，"
+  },
+  {
+    "source_type": "math",
+    "source_name": "math_template_693",
+    "num_tokens": 268,
+    "context_preview_text": "Theorem. Suppose a sequence is bounded and monotone. Then the sequence converges. Proof. Because the sequence is bounded, it has an upper bound. By the completeness property of the real numbers, the set of its values has a least upper bound. We show that the distance between the sequence and this bound becomes arbitrarily small.  Next, consider a second example with four outcomes. Let the probabilities be a, b, c, and d after normalization"
+  },
+  {
+    "source_type": "json_config",
+    "source_name": "json_config_template_720",
+    "num_tokens": 367,
+    "context_preview_text": "{\n  \"experiment\": \"token_report\",\n  \"seed\": 20260720,\n  \"model\": {\n    \"target\": \"Llama-7B-Chat-Target\",\n    \"draft\": \"Llama-68M-Draft\"\n  },\n  \"data\": {\n    \"source_type\": \"balanced\",\n    \"context_length\":"
+  },
+  {
+    "source_type": "json_config",
+    "source_name": "json_config_template_785",
+    "num_tokens": 273,
+    "context_preview_text": "[experiment]\nname = \"entropy_run\"\nseed = 20260785\ncontext_len = 128\n\n[model]\ntarget = \"Llama-7B-Chat-Target\"\ndraft = \"Llama-68M-Draft\"\n\n[metrics]\nentropy = true\nacceptance = true\nsave_token_records = true"
+  },
+  {
+    "source_type": "json_config",
+    "source_name": "json_config_template_1824",
+    "num_tokens": 367,
+    "context_preview_text": "{\n  \"experiment\": \"token_report\",\n  \"seed\": 20261824,\n  \"model\": {\n    \"target\": \"Llama-7B-Chat-Target\",\n    \"draft\": \"Llama-68M-Draft\"\n  },\n  \"data\": {\n    \"source_type\": \"balanced\",\n    \"context_length\":"
+  },
+  {
+    "source_type": "json_config",
+    "source_name": "json_config_template_1811",
+    "num_tokens": 272,
+    "context_preview_text": "[experiment]\nname = \"token_report\"\nseed = 20261811\ncontext_len = 256\n\n[model]\ntarget = \"Llama-7B-Chat-Target\"\ndraft = \"Llama-68M-Draft\"\n\n[metrics]\nentropy = true\nacceptance = true\nsave_token_records = true\n"
+  },
+  {
+    "source_type": "json_config",
+    "source_name": "json_config_template_487",
+    "num_tokens": 277,
+    "context_preview_text": "experiment: token_report\nseed: 20260487\nmodel:\n  target: Llama-7B-Chat-Target\n  draft: Llama-68M-Draft\ntraining:\n  learning_rate: 1e-4\n  batch_size: 16\n  attention: sdpa\nmetrics:\n  - entropy\n  - acceptance_rate\n  -"
+  }
+]
