@@ -3,3 +3,4 @@ __pycache__/
 .ipynb_checkpoints/
 *.pyc
 .autodl/
+realdata_entropy_acceptance_results/data_cache/
