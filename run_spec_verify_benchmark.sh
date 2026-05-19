@@ -24,18 +24,18 @@ DRAFT_DIR="Llama-68M-Draft"
 OUTPUT_DIR="./spec_verify_results"
 
 # 上下文长度列表，单位为 token。
-CONTEXT_LENS=(512)
+CONTEXT_LENS=(2048)
 
 # 最大草稿长度。
 # 例如 MAX_DRAFT_LEN="100" 且 DRAFT_LEN_STEP="10" 时，会测试 10,20,30,...,100。
-MAX_DRAFT_LEN="1000"
+MAX_DRAFT_LEN="2000"
 
 # 草稿长度测试步长。
 # 例如 10 表示测试 10,20,30,...；1 表示测试 1,2,3,...。
-DRAFT_LEN_STEP="10"
+DRAFT_LEN_STEP="100"
 
 # 每个 context_len 和 draft_len 配置下的重复实验次数。
-REPEAT="20"
+REPEAT="10"
 
 # 每个配置正式计时前的 warmup 次数。warmup 结果不会写入 CSV。
 WARMUP="2"
@@ -68,7 +68,7 @@ python "${SCRIPT_PATH}" \
   --output-dir "${OUTPUT_DIR}" \
   --context-lens "${CONTEXT_LENS[@]}" \
   --max-draft-len "${MAX_DRAFT_LEN}" \
-  --max-draft-len "${MAX_DRAFT_LEN}" \
+  --draft-len-step "${DRAFT_LEN_STEP}" \
   --repeat "${REPEAT}" \
   --warmup "${WARMUP}" \
   --dtype "${DTYPE}" \

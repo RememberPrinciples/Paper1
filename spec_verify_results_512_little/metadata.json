@@ -1,0 +1,38 @@
+{
+  "script_version": "2026-05-17-dynamic-cache-native-v4",
+  "args": {
+    "model_root": "./Model",
+    "target_dir": "Llama-7B-Chat-Target",
+    "draft_dir": "Llama-68M-Draft",
+    "output_dir": "./spec_verify_results",
+    "context_lens": [
+      512
+    ],
+    "max_draft_len": 20,
+    "repeat": 20,
+    "draft_len_step": 1,
+    "warmup": 2,
+    "dtype": "fp16",
+    "attn_implementation": "eager",
+    "plot_metric": "cuda_ms",
+    "seed": 20260517,
+    "return_new_cache": true,
+    "clone_past_each_trial": true,
+    "strict_max_position": false,
+    "save_raw_partial_every": 50,
+    "disable_explicit_cache_position": false
+  },
+  "target_path": "/root/autodl-tmp/Model/Llama-7B-Chat-Target",
+  "draft_path": "/root/autodl-tmp/Model/Llama-68M-Draft",
+  "common_vocab_size": 32000,
+  "target_tokenizer_size": 32001,
+  "draft_tokenizer_size": 32000,
+  "target_config_vocab_size": 32000,
+  "draft_config_vocab_size": 32000,
+  "target_max_position_embeddings": 4096,
+  "draft_max_position_embeddings": 2048,
+  "torch_version": "2.11.0+cu130",
+  "cuda_available": true,
+  "cuda_device_name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "cuda_device_count": 1
+}
