@@ -1,0 +1,97 @@
+{
+  "rows": 75000,
+  "contexts": [
+    64,
+    128,
+    256
+  ],
+  "source_counts": {
+    "chat": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    },
+    "code": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    },
+    "json_config": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    },
+    "math": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    },
+    "natural_language": {
+      "64": 5000,
+      "128": 5000,
+      "256": 5000
+    }
+  },
+  "natural_prefix_all_true": true,
+  "topk_id_distinct_all_true": true,
+  "probability_ranges_ok": true,
+  "monotonic_acceptance_all_true": true,
+  "seq_formula_max_abs_error": 1.7797515172723877e-07,
+  "seq_expected_vs_empirical_by_ctx": {
+    "64": {
+      "seq_top1_expected": 0.43839440786123274,
+      "seq_top1_empirical": 0.43784,
+      "seq_top1_abs_diff": 0.0005544078612327308,
+      "seq_top2_expected": 0.607818710846901,
+      "seq_top2_empirical": 0.60888,
+      "seq_top2_abs_diff": 0.0010612891530989987,
+      "seq_top3_expected": 0.6924014641356468,
+      "seq_top3_empirical": 0.69304,
+      "seq_top3_abs_diff": 0.0006385358643531402,
+      "seq_top4_expected": 0.7413628260874748,
+      "seq_top4_empirical": 0.74112,
+      "seq_top4_abs_diff": 0.00024282608747483447,
+      "seq_top5_expected": 0.7730189234375954,
+      "seq_top5_empirical": 0.77232,
+      "seq_top5_abs_diff": 0.0006989234375953668
+    },
+    "128": {
+      "seq_top1_expected": 0.4757125275850296,
+      "seq_top1_empirical": 0.47732,
+      "seq_top1_abs_diff": 0.0016074724149704456,
+      "seq_top2_expected": 0.5899329381012917,
+      "seq_top2_empirical": 0.59164,
+      "seq_top2_abs_diff": 0.0017070618987083952,
+      "seq_top3_expected": 0.6550636192727088,
+      "seq_top3_empirical": 0.65548,
+      "seq_top3_abs_diff": 0.0004163807272911102,
+      "seq_top4_expected": 0.698527978079319,
+      "seq_top4_empirical": 0.69832,
+      "seq_top4_abs_diff": 0.00020797807931893786,
+      "seq_top5_expected": 0.7350575566887856,
+      "seq_top5_empirical": 0.73452,
+      "seq_top5_abs_diff": 0.0005375566887856342
+    },
+    "256": {
+      "seq_top1_expected": 0.4772958587265015,
+      "seq_top1_empirical": 0.47712,
+      "seq_top1_abs_diff": 0.0001758587265014988,
+      "seq_top2_expected": 0.6123822051763534,
+      "seq_top2_empirical": 0.6118,
+      "seq_top2_abs_diff": 0.0005822051763534342,
+      "seq_top3_expected": 0.6837795433497429,
+      "seq_top3_empirical": 0.68296,
+      "seq_top3_abs_diff": 0.0008195433497428795,
+      "seq_top4_expected": 0.725762258682251,
+      "seq_top4_empirical": 0.725,
+      "seq_top4_abs_diff": 0.0007622586822509936,
+      "seq_top5_expected": 0.756551927280426,
+      "seq_top5_empirical": 0.75604,
+      "seq_top5_abs_diff": 0.0005119272804259278
+    }
+  },
+  "tokenizer_model_md5": {
+    "Model/Llama-7B-Chat-Target/tokenizer.model": "eeec4125e9c7560836b4873b6f8e3025",
+    "Model/Llama-68M-Draft/tokenizer.model": "eeec4125e9c7560836b4873b6f8e3025"
+  }
+}
