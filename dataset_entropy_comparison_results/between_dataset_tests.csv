@@ -1,0 +1,2 @@
+scope,metric,num_groups,n,kruskal_h,permutation_p,permutations
+dataset,prompt_mean_draft_entropy,8,400,239.18919501246864,0.0001999600079984003,5000
