@@ -1,0 +1,671 @@
+\documentclass[11pt,a4paper]{ctexart}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\makeatletter
+\providecommand{\theHALG@line}{}
+\renewcommand{\theHALG@line}{\theHalgorithm.\arabic{ALG@line}}
+\makeatother
+
+\title{面向边缘-终端协同推测解码的草稿模型选择与熵感知动态起草}
+\author{系统模型与算法笔记}
+\date{\today}
+
+\newtheorem{assumption}{假设}[section]
+\newtheorem{proposition}{命题}[section]
+\newtheorem{theorem}{定理}[section]
+\crefname{assumption}{假设}{假设}
+\crefname{proposition}{命题}{命题}
+\crefname{theorem}{定理}{定理}
+
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+
+\begin{document}
+
+\maketitle
+
+\section{系统模型与算法}
+\label{sec:system_model_algorithm}
+
+\subsection{研究背景与两层决策框架}
+\label{subsec:background}
+
+本文考虑一个边缘-终端协同推测解码系统。边缘侧服务器部署目标模型 $P$，多个终端设备分别部署异构草稿模型。请求到达后，边侧服务器首先对请求进行任务分类，得到任务类型
+\begin{equation}
+    \tau_t\in\mathcal{T},
+\end{equation}
+其中 $t$ 是请求索引，$\mathcal{T}$ 是有限任务类型集合。随后，边侧服务器需要从候选草稿模型集合
+\begin{equation}
+    \mathcal{D}=\{d_1,d_2,\ldots,d_N\}
+\end{equation}
+中选择一个草稿模型与目标模型进行协同推理。
+
+与固定草稿长度的传统建模不同，本文采用两层决策：
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{边侧草稿模型选择：}边侧服务器根据任务类型、终端负载、信道状态以及多臂赌博机学习到的草稿模型接受率，选择本次请求使用的草稿模型。
+    \item \textbf{终端动态起草：}被选中的草稿模型在本次推测解码过程中不使用固定草稿长度，而是根据每个候选 token 的生成熵动态决定是否继续起草，并将最终草稿序列上传给目标模型验证。
+\end{enumerate}
+
+因此，边侧服务器学习的是“哪个草稿模型在当前任务和系统状态下能带来最高有效接受 token 速率”，终端侧学习的是“该草稿模型在当前任务下的 token 接受率如何随生成熵变化”。
+
+\subsection{请求状态与系统资源}
+\label{subsec:state}
+
+请求 $t$ 到达并分类后，边侧服务器观测状态
+\begin{equation}
+    S(t)=\{\tau_t,\mathbf{L}(t),\mathbf{B}(t)\},
+\end{equation}
+其中
+\begin{equation}
+    \mathbf{L}(t)=[L_1(t),\ldots,L_N(t)],
+    \quad
+    \mathbf{B}(t)=[B_1(t),\ldots,B_N(t)].
+\end{equation}
+$L_i(t)\in[0,1)$ 表示终端 $d_i$ 的当前负载，例如 GPU/内存占用、队列压力或综合负载指标；$B_i(t)$ 表示终端 $d_i$ 到边侧服务器的有效上行吞吐率。若只能获得物理层信道状态，可使用
+\begin{equation}
+    B_i^{\mathrm{phy}}(t)
+    =
+    W_i(t)\log_2
+    \left(
+    1+
+    \frac{P_i^{\mathrm{tx}}h_i(t)}
+    {N_0W_i(t)+I_i(t)}
+    \right),
+\end{equation}
+并令
+\begin{equation}
+    B_i(t)=\rho_i(t)B_i^{\mathrm{phy}}(t),
+    \quad 0<\rho_i(t)\leq 1,
+\end{equation}
+其中 $\rho_i(t)$ 吸收编码、分包、竞争、重传和协议栈开销。若系统可以直接测量应用层有效吞吐率，则直接使用测量值 $B_i(t)$。
+
+\subsection{草稿模型负载与通信时延}
+\label{subsec:latency}
+
+终端负载会影响草稿模型生成 token 的速度。令
+\begin{equation}
+    \Phi_i(L_i(t))
+    =
+    c_i^{\mathrm{d}}
+    +
+    \frac{V_i^{\mathrm{d}}}{\beta_i(L_i(t))b_i^0},
+    \quad
+    0<\beta_i(L_i(t))\leq 1,
+    \label{eq:draft_token_latency}
+\end{equation}
+表示终端 $d_i$ 在负载 $L_i(t)$ 下生成一个 draft token 的平均时间。其中 $c_i^{\mathrm{d}}$ 是非内存计算与软件开销，$V_i^{\mathrm{d}}$ 是平均内存访问量，$b_i^0$ 是空闲时标称内存带宽，$\beta_i(\cdot)$ 是通过 profiling 得到的负载退化函数。
+
+草稿模型上传给目标模型的不仅包括 token ID，还包括目标模型验证所需的 token 概率、logits 或压缩分布摘要。令
+\begin{equation}
+    S_{\mathrm{tok}}=S_{\mathrm{id}}+S_{\mathrm{dist}},
+\end{equation}
+表示每个 draft token 的上传负载。若一次动态起草产生长度为 $g$ 的草稿序列，则上行通信时延为
+\begin{equation}
+    T_i^{\mathrm{comm}}(g\mid t)
+    =
+    \frac{gS_{\mathrm{tok}}+S_{\mathrm{header}}}{B_i(t)}
+    +\delta_i(t),
+    \label{eq:comm_latency}
+\end{equation}
+其中 $S_{\mathrm{header}}$ 是每轮推测解码的固定元数据大小，$\delta_i(t)$ 是接入、排队、协议栈与重传等额外时延。
+
+若草稿长度为 $g$，一次协同推测解码轮的时延为
+\begin{equation}
+    T_i^{\mathrm{round}}(g\mid t)
+    =
+    g\Phi_i(L_i(t))
+    +
+    T_i^{\mathrm{comm}}(g\mid t)
+    +
+    T^{\mathrm{ver}}(g,t),
+    \label{eq:round_latency}
+\end{equation}
+其中 $T^{\mathrm{ver}}(g,t)$ 是边侧目标模型验证长度为 $g$ 的草稿序列所需时间，可由 profiling 或在线测量获得。
+
+\section{边侧草稿模型选择：UCB 有效接受 token 速率}
+\label{sec:model_selection}
+
+\subsection{平均接受率学习}
+\label{subsec:mean_acceptance}
+
+边侧服务器为每个草稿模型-任务类型对 $(i,\tau)$ 维护平均 token 接受率估计。令 $V_{i,\tau}(t)$ 表示请求 $t$ 到达前，草稿模型 $d_i$ 在任务 $\tau$ 下已经被目标模型实际验证过的 draft token 数量；令 $C_{i,\tau}(t)$ 表示其中被接受的 draft token 数量。经验平均接受率为
+\begin{equation}
+    \widehat{\alpha}_{i,\tau}(t)
+    =
+    \frac{C_{i,\tau}(t)}{V_{i,\tau}(t)}.
+    \label{eq:empirical_acceptance}
+\end{equation}
+
+需要强调的是，$V_{i,\tau}(t)$ 只统计目标模型真实验证过的 draft token。一次推测解码轮中，第一个 rejected draft token 之后的 proposed tokens 属于 censored observations，不进入接受率估计。
+
+为了进行探索，边侧服务器构造接受率的上置信界
+\begin{equation}
+    \overline{\alpha}_{i,\tau}(t)
+    =
+    \min
+    \left\{
+    1,\;
+    \widehat{\alpha}_{i,\tau}(t)
+    +
+    r_{i,\tau}(t)
+    \right\},
+    \label{eq:ucb_acceptance}
+\end{equation}
+其中
+\begin{equation}
+    r_{i,\tau}(t)
+    =
+    \sqrt{
+    \frac{
+    \log\!\left(2N|\mathcal{T}|t^2/\delta\right)
+    }
+    {2V_{i,\tau}(t)}
+    }.
+    \label{eq:ucb_radius}
+\end{equation}
+$\delta\in(0,1)$ 是置信参数。实际系统中，$V_{i,\tau}(t)\geq 1$ 可由 warm-start profiling 或 pseudocount 保证。
+
+\subsection{基于最新接受率上置信界的设备搜索}
+\label{subsec:effective_rate}
+
+由于草稿模型分布在不同终端，仅比较接受率是不够的。边侧服务器还必须同时考虑终端负载、上行链路和目标模型验证开销。与仅使用一个长期预测草稿长度进行选择不同，本文在获得在线接受率反馈后，采用与会议版本一致的枚举搜索思想：边侧服务器用最新的接受率上置信界，对每个候选草稿模型和候选规划长度计算乐观平均有效 token 时延，并选择时延最小的设备。
+
+在系统冷启动阶段，若任务-设备对 $(i,\tau)$ 尚无任何验证反馈，则边侧服务器可使用 profiling 给出的初始规划长度
+\begin{equation}
+    g_{i,\tau}^{0}\in\{1,\ldots,g_{\max}\}
+\end{equation}
+完成最初的探索性选择。该长度只用于冷启动估值，不作为后续在线决策中的固定草稿长度。一旦边侧服务器获得了接受率反馈，设备选择即转为基于最新 $\overline{\alpha}_{i,\tau_t}(t)$ 的枚举搜索。
+
+若候选规划长度为 $g$，平均 token 接受率为 $\alpha$，则期望被接受的 draft token 数为
+\begin{equation}
+    A(\alpha,g)
+    =
+    \sum_{\ell=1}^{g}\alpha^\ell
+    =
+    \frac{\alpha(1-\alpha^g)}{1-\alpha},
+    \quad \alpha\neq 1,
+    \label{eq:expected_accepted_draft_tokens}
+\end{equation}
+且 $A(1,g)=g$。若将目标模型在首次拒绝后生成的 fallback token 也计入本轮有效输出，则会议版本中的期望有效 token 数为
+\begin{equation}
+    G(\alpha,g)
+    =
+    1+A(\alpha,g)
+    =
+    \sum_{\ell=0}^{g}\alpha^\ell
+    =
+    \frac{1-\alpha^{g+1}}{1-\alpha},
+    \quad \alpha\neq 1,
+    \label{eq:expected_valid_tokens}
+\end{equation}
+其中 $G(1,g)=g+1$。$A(\alpha,g)$ 用于度量协同草稿本身带来的接受收益，$G(\alpha,g)$ 用于计算端到端解码意义下的平均有效 token 时延。
+
+给定最新的接受率上置信界 $\overline{\alpha}_{i,\tau_t}(t)$，边侧服务器对设备 $d_i$ 和规划长度 $g$ 计算乐观平均有效 token 时延
+\begin{equation}
+    \overline{J}_{i,g}(t)
+    =
+    \frac{
+    T_i^{\mathrm{round}}(g\mid t)
+    }{
+    G(\overline{\alpha}_{i,\tau_t}(t),g)
+    }.
+    \label{eq:optimistic_tpot}
+\end{equation}
+边侧服务器选择
+\begin{equation}
+    (i_t,g_t^{\mathrm{plan}})
+    =
+    \argmin_{i\in[N],\,1\leq g\leq g_{\max}}
+    \overline{J}_{i,g}(t).
+    \label{eq:model_selection_rule}
+\end{equation}
+
+这里 $g_t^{\mathrm{plan}}$ 是边侧服务器用于估值和搜索的规划长度，不强制终端侧实际生成固定长度草稿。真正的草稿长度仍由终端侧动态起草策略产生。该规则具有明确的系统含义：一个草稿模型即使接受率较高，但如果终端负载过重或上行链路较差，其 $\overline{J}_{i,g}(t)$ 也可能较大；相反，一个尚未充分探索的草稿模型会因为 $r_{i,\tau}(t)$ 较大而获得探索机会。
+
+\begin{algorithm}[t]
+\caption{边侧服务器的 UCB 草稿模型选择}
+\label{alg:edge_ucb_selection}
+\begin{algorithmic}[1]
+\Require 任务类型 $\tau_t$，状态 $\{\mathbf{L}(t),\mathbf{B}(t)\}$，统计量 $\{C_{i,\tau},V_{i,\tau}\}$，冷启动长度 $\{g_{i,\tau}^{0}\}$
+\Ensure 被选择的草稿模型 $d_{i_t}$ 与规划长度 $g_t^{\mathrm{plan}}$
+\State $\overline{J}_{\min}\gets+\infty$
+\For{$i=1,\ldots,N$}
+    \State 根据 \cref{eq:empirical_acceptance} 计算 $\widehat{\alpha}_{i,\tau_t}(t)$
+    \State 根据 \cref{eq:ucb_acceptance}--\cref{eq:ucb_radius} 计算 $\overline{\alpha}_{i,\tau_t}(t)$
+    \State 根据终端负载 $L_i(t)$ 计算 $\Phi_i(L_i(t))$
+    \If{$V_{i,\tau_t}(t)=0$}
+        \State $\mathcal{G}_i(t)\gets\{g_{i,\tau_t}^{0}\}$
+    \Else
+        \State $\mathcal{G}_i(t)\gets\{1,\ldots,g_{\max}\}$
+    \EndIf
+    \For{$g\in\mathcal{G}_i(t)$}
+        \State 根据上行吞吐率 $B_i(t)$ 计算 $T_i^{\mathrm{round}}(g\mid t)$
+        \State 根据 \cref{eq:optimistic_tpot} 计算 $\overline{J}_{i,g}(t)$
+        \If{$\overline{J}_{i,g}(t)<\overline{J}_{\min}$}
+            \State $\overline{J}_{\min}\gets\overline{J}_{i,g}(t)$，$i_t\gets i$，$g_t^{\mathrm{plan}}\gets g$
+        \EndIf
+    \EndFor
+\EndFor
+\State \Return $d_{i_t}$, $g_t^{\mathrm{plan}}$
+\end{algorithmic}
+\end{algorithm}
+
+\section{终端动态起草：熵感知接受率曲线}
+\label{sec:entropy_drafting}
+
+\subsection{熵-接受率线性模型}
+\label{subsec:entropy_curve}
+
+边侧服务器选择草稿模型 $d_{i_t}$ 后，终端侧草稿模型开始起草。不同于固定草稿长度策略，本文假设草稿模型能够在每个候选 token 生成时计算其输出分布熵。令第 $\ell$ 个候选 draft token 的分布为 $q_{i_t,\ell}(\cdot)$，其熵为
+\begin{equation}
+    H_\ell
+    =
+    -\sum_{v\in\mathcal{V}}
+    q_{i_t,\ell}(v)\log q_{i_t,\ell}(v),
+    \label{eq:token_entropy}
+\end{equation}
+其中 $\mathcal{V}$ 是词表。
+
+对于每个草稿模型-任务类型对 $(i,\tau)$，维护一条接受率随熵单调递减的线性曲线：
+\begin{equation}
+    a_{i,\tau}(H;\theta_{i,\tau})
+    =
+    \clip_{[0,1]}
+    \left(
+    \theta_{i,\tau,0}
+    -
+    \theta_{i,\tau,1}H
+    \right),
+    \quad
+    \theta_{i,\tau,1}\geq 0.
+    \label{eq:entropy_acceptance_curve}
+\end{equation}
+$a_{i,\tau}(H;\theta_{i,\tau})$ 表示当草稿模型在任务 $\tau$ 下生成熵为 $H$ 的 token 时，该 token 被目标模型接受的预测概率。初始参数
+\begin{equation}
+    \theta_{i,\tau}^{0}
+    =
+    (\theta_{i,\tau,0}^{0},\theta_{i,\tau,1}^{0})
+\end{equation}
+由离线 profiling 或经验预设给出。若缺少任务特定 profiling，可使用全局默认曲线。
+
+\subsection{动态停止准则}
+\label{subsec:dynamic_stop}
+
+设草稿模型已经产生候选 token 序列 $z_{1:\ell}$，对应熵为 $H_{1:\ell}$。根据 \cref{eq:entropy_acceptance_curve}，第 $r$ 个 token 的预测接受概率为
+\begin{equation}
+    \widehat{a}_r
+    =
+    a_{i_t,\tau_t}(H_r;\theta_{i_t,\tau_t}).
+\end{equation}
+如果上传长度为 $\ell$ 的草稿序列，期望被接受的 draft token 数为
+\begin{equation}
+    \widehat{A}_{\ell}
+    =
+    \sum_{k=1}^{\ell}
+    \prod_{r=1}^{k}\widehat{a}_r.
+    \label{eq:entropy_expected_acceptance}
+\end{equation}
+对应的预测有效接受 token 速率为
+\begin{equation}
+    \widehat{R}_{\ell}
+    =
+    \frac{\widehat{A}_{\ell}}
+    {T_{i_t}^{\mathrm{round}}(\ell\mid t)}.
+    \label{eq:entropy_rate}
+\end{equation}
+
+草稿模型逐 token 起草，并使用如下停止规则。对于新生成的候选 token $\ell$，先计算其熵 $H_\ell$ 和预测接受概率 $\widehat{a}_\ell$。若
+\begin{equation}
+    \widehat{a}_\ell < \eta_{\mathrm{acc}},
+    \label{eq:entropy_threshold_stop}
+\end{equation}
+则认为该 token 的接受概率过低，草稿模型停止起草，并将当前 token 之前的序列作为草稿序列上传。若 $\widehat{a}_\ell\geq\eta_{\mathrm{acc}}$，则将该 token 加入草稿序列，并继续检查速率是否仍有提升。若
+\begin{equation}
+    \widehat{R}_{\ell}
+    <
+    \widehat{R}_{\ell-1}
+    -
+    \epsilon_{\mathrm{stop}},
+    \label{eq:rate_stop}
+\end{equation}
+则停止起草，选择使 $\widehat{R}_{m}$ 最大的长度
+\begin{equation}
+    g_t
+    =
+    \argmax_{1\leq m\leq \ell}
+    \widehat{R}_{m}.
+    \label{eq:best_dynamic_length}
+\end{equation}
+否则继续生成下一个候选 token，直到达到最大长度 $g_{\max}$。
+
+参数 $\eta_{\mathrm{acc}}$ 是最小可接受概率阈值，$\epsilon_{\mathrm{stop}}\geq 0$ 是避免因微小估计波动导致频繁停止的容忍项。该停止准则同时考虑了 token 接受概率、草稿模型负载、通信状态和目标模型验证时延。如果第一个候选 token 已经触发 \cref{eq:entropy_threshold_stop}，系统默认仍上传长度为 $1$ 的最小草稿序列，以避免空草稿轮带来的协议和实现歧义。
+
+\begin{algorithm}[t]
+\caption{熵感知动态起草}
+\label{alg:entropy_drafting}
+\begin{algorithmic}[1]
+\Require 草稿模型 $d_{i_t}$，任务 $\tau_t$，上下文 $x_{<}$，曲线参数 $\theta_{i_t,\tau_t}$，最大长度 $g_{\max}$
+\Ensure 草稿序列 $z_{1:g_t}$ 及熵序列 $H_{1:g_t}$
+\State 初始化 $z_{1:0}\gets\emptyset$，$\widehat{R}_0\gets 0$
+\For{$\ell=1,\ldots,g_{\max}$}
+    \State 草稿模型生成候选 token $z_\ell$ 及分布 $q_{i_t,\ell}(\cdot)$
+    \State 根据 \cref{eq:token_entropy} 计算熵 $H_\ell$
+    \State 计算 $\widehat{a}_\ell=a_{i_t,\tau_t}(H_\ell;\theta_{i_t,\tau_t})$
+    \If{$\widehat{a}_\ell<\eta_{\mathrm{acc}}$}
+        \State $g_t\gets \max\{1,\ell-1\}$
+        \State \textbf{break}
+    \EndIf
+    \State 将 $z_\ell$ 加入草稿序列
+    \State 根据 \cref{eq:entropy_expected_acceptance}--\cref{eq:entropy_rate} 计算 $\widehat{R}_\ell$
+    \If{$\ell>1$ 且 $\widehat{R}_{\ell}<\widehat{R}_{\ell-1}-\epsilon_{\mathrm{stop}}$}
+        \State $g_t\gets\argmax_{1\leq m\leq\ell}\widehat{R}_m$
+        \State \textbf{break}
+    \EndIf
+    \If{$\ell=g_{\max}$}
+        \State $g_t\gets\argmax_{1\leq m\leq g_{\max}}\widehat{R}_m$
+    \EndIf
+\EndFor
+\State \Return $z_{1:g_t}$, $H_{1:g_t}$
+\end{algorithmic}
+\end{algorithm}
+
+\section{反馈更新与近 10 次曲线修正}
+\label{sec:update}
+
+\subsection{请求结束后的平均接受率更新}
+\label{subsec:mean_update}
+
+请求 $t$ 的推测解码过程结束后，边侧服务器获得目标模型验证反馈。令 $\mathcal{O}_t$ 表示本请求中所有具有明确接受/拒绝标签的 draft token 观测集合。每个观测样本为
+\begin{equation}
+    o=(H_o,Y_o),
+    \quad
+    Y_o\in\{0,1\},
+\end{equation}
+其中 $H_o$ 是该 token 的草稿熵，$Y_o=1$ 表示该 token 被接受，$Y_o=0$ 表示该 token 被拒绝。目标模型在一次前向传播中并行处理终端上传的整段草稿序列；若实现能够为每个上传 token 返回有效接受标签，则整段草稿均可计入 $\mathcal{O}_t$。若采用标准推测解码语义，首个 rejected token 之后的 proposed tokens 不具有可用于更新平均接受率的无偏标签，则这些 censored observations 不进入 $\mathcal{O}_t$。
+
+对被选择的草稿模型 $i_t$ 和任务 $\tau_t$，更新平均接受率统计量：
+\begin{equation}
+    C_{i_t,\tau_t}
+    \leftarrow
+    C_{i_t,\tau_t}
+    +
+    \sum_{o\in\mathcal{O}_t}Y_o,
+    \label{eq:C_update}
+\end{equation}
+\begin{equation}
+    V_{i_t,\tau_t}
+    \leftarrow
+    V_{i_t,\tau_t}
+    +
+    |\mathcal{O}_t|.
+    \label{eq:V_update}
+\end{equation}
+该更新用于下一次边侧服务器的 UCB 草稿模型选择。
+
+\subsection{近 10 次数据的线性曲线拟合}
+\label{subsec:curve_update}
+
+为了修正熵-接受率关系，系统为每个 $(i,\tau)$ 维护最近 $M=10$ 个已验证 token 数据点：
+\begin{equation}
+    \mathcal{W}_{i,\tau}(t)
+    =
+    \{(H_m,Y_m)\}_{m=1}^{M}.
+\end{equation}
+当新的观测 $\mathcal{O}_t$ 到达时，将其加入窗口，并丢弃更早的数据点，使窗口大小不超过 $10$。
+
+在窗口 $\mathcal{W}_{i,\tau}(t)$ 上，使用带单调约束的最小二乘拟合修正曲线：
+\begin{subequations}
+\label{prob:window_fit}
+\begin{align}
+    \min_{\theta_0,\theta_1}\quad
+    &
+    \sum_{(H_m,Y_m)\in\mathcal{W}_{i,\tau}(t)}
+    \left(
+    Y_m-\theta_0+\theta_1H_m
+    \right)^2
+    \\
+    \mathrm{s.t.}\quad
+    &
+    0\leq \theta_0\leq 1,
+    \\
+    &
+    \theta_1\geq 0.
+\end{align}
+\end{subequations}
+得到窗口估计 $\widetilde{\theta}_{i,\tau}(t)$ 后，采用平滑更新
+\begin{equation}
+    \theta_{i,\tau}(t+1)
+    =
+    (1-\rho_\theta)\theta_{i,\tau}(t)
+    +
+    \rho_\theta\widetilde{\theta}_{i,\tau}(t),
+    \quad
+    0<\rho_\theta\leq 1.
+    \label{eq:theta_smoothing}
+\end{equation}
+若窗口数据不足 $M$ 个，则使用初始曲线 $\theta_{i,\tau}^{0}$ 或将 $\rho_\theta$ 设为较小值，以避免早期少量样本导致曲线剧烈摆动。
+
+请求 $t$ 中实际动态起草长度 $g_t$ 可作为终端动态停止策略的诊断量或冷启动 profiling 的后续修正，但不再作为边侧服务器后续设备选择的主要输入。边侧设备选择在获得任意有效接受率反馈后，直接使用最新 $\overline{\alpha}_{i,\tau}(t)$ 并通过 \cref{eq:optimistic_tpot}--\cref{eq:model_selection_rule} 枚举搜索候选设备。
+
+\begin{algorithm}[t]
+\caption{请求结束后的反馈更新}
+\label{alg:update}
+\begin{algorithmic}[1]
+\Require 被选择模型 $i_t$，任务 $\tau_t$，验证观测集合 $\mathcal{O}_t$
+\Ensure 更新后的接受率统计量、熵曲线与接受率上置信界
+\State 根据 \cref{eq:C_update}--\cref{eq:V_update} 更新 $C_{i_t,\tau_t}$ 与 $V_{i_t,\tau_t}$
+\State 根据 \cref{eq:empirical_acceptance}--\cref{eq:ucb_radius} 更新 $\widehat{\alpha}_{i_t,\tau_t}$ 与 $\overline{\alpha}_{i_t,\tau_t}$
+\State 将 $\mathcal{O}_t$ 加入窗口 $\mathcal{W}_{i_t,\tau_t}$，并保留最近 $10$ 个数据点
+\If{$|\mathcal{W}_{i_t,\tau_t}|\geq 2$}
+    \State 求解 \cref{prob:window_fit} 得到 $\widetilde{\theta}_{i_t,\tau_t}$
+    \State 根据 \cref{eq:theta_smoothing} 更新 $\theta_{i_t,\tau_t}$
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\section{完整在线流程}
+\label{sec:complete_algorithm}
+
+综合前述部分，本文的在线协同推测解码流程如 \cref{alg:complete_framework} 所示。
+
+\begin{algorithm}[t]
+\caption{边缘-终端协同推测解码的两层在线学习框架}
+\label{alg:complete_framework}
+\begin{algorithmic}[1]
+\Require 候选草稿模型集合 $\mathcal{D}$，任务集合 $\mathcal{T}$，初始统计量 $\{C,V,\theta\}$，冷启动长度 $\{g^0\}$
+\For{每个到达请求 $t=1,2,\ldots$}
+    \State 边侧服务器对请求分类，得到任务类型 $\tau_t$
+    \State 观测终端负载 $\mathbf{L}(t)$ 与上行吞吐率 $\mathbf{B}(t)$
+    \State 使用 \cref{alg:edge_ucb_selection} 搜索并选择草稿模型 $d_{i_t}$ 与规划长度 $g_t^{\mathrm{plan}}$
+    \While{请求未完成}
+        \State 终端 $d_{i_t}$ 以 $g_t^{\mathrm{plan}}$ 为参考，使用 \cref{alg:entropy_drafting} 生成动态草稿序列 $z_{1:g_t}$
+        \State 终端上传草稿 token 及验证所需分布信息
+        \State 边侧目标模型 $P$ 在一次前向传播中并行验证草稿序列，输出 accepted tokens 并记录具有明确标签的验证观测
+    \EndWhile
+    \State 使用 \cref{alg:update} 更新平均接受率、接受率上置信界和熵曲线
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\section{讨论与后续理论分析入口}
+\label{sec:discussion}
+
+该模型相较于固定草稿长度的 structured UCB 有三点主要变化。
+
+第一，边侧最终 action 仍是草稿模型选择 $i$，但服务器在选择前会参考会议版本的枚举思想，对每个候选设备和候选规划长度 $g$ 计算乐观平均有效 token 时延 $\overline{J}_{i,g}(t)$。规划长度 $g_t^{\mathrm{plan}}$ 只服务于边侧估值和给终端的参考，不强制终端生成固定长度草稿；实际草稿长度由终端侧根据熵曲线自适应产生。
+
+第二，学习对象分为两个时间尺度。边侧服务器学习平均接受率 $\alpha_{i,\tau}$，用于跨请求的草稿模型选择；终端侧维护熵-接受率曲线 $a_{i,\tau}(H;\theta_{i,\tau})$，用于请求内动态停止。
+
+第三，反馈仍然是 censored。只有目标模型实际验证过的 draft token 可以用于更新 $C_{i,\tau}$、$V_{i,\tau}$ 和窗口 $\mathcal{W}_{i,\tau}$。首个 rejected token 之后的未验证 token 不能被当作拒绝样本，否则会引入系统性偏差。
+
+后续理论分析可以从两个方向展开：
+\begin{enumerate}[leftmargin=*]
+    \item 在固定熵曲线和 stationary acceptance 假设下，证明边侧 UCB 模型选择的 regret 上界。
+    \item 在滑动窗口拟合下，将熵曲线估计误差作为额外扰动项，分析动态起草停止策略对有效接受 token 速率的影响。
+\end{enumerate}
+
+\appendix
+\section{English Version of Algorithm 1 for Presentation}
+\label{app:english_algorithm}
+
+This appendix provides a compact English version of Algorithm~1 for presentation slides. The algorithm keeps the paper-style pseudocode format while using explicit short expressions for the key UCB and TPOT quantities.
+
+\setcounter{algorithm}{0}
+\renewcommand{\theHalgorithm}{appendix.\arabic{algorithm}}
+\begin{algorithm}[t]
+\caption{UCB-Based Draft Model Selection at the Edge Server}
+\label{alg:edge_ucb_selection_en}
+\begin{algorithmic}[1]
+\Require Task type $\tau_t$; system state $\{\mathbf{L}(t),\mathbf{B}(t)\}$; acceptance statistics $\{C_{i,\tau},V_{i,\tau}\}$; cold-start lengths $\{g_{i,\tau}^{0}\}$
+\Ensure Selected draft model $d_{i_t}$ and planned draft length $g_t^{\mathrm{plan}}$
+\State $\overline{J}_{\min}\gets+\infty$
+\For{$i=1,\ldots,N$}
+    \State Compute $\widehat{\alpha}_{i,\tau_t}(t)=C_{i,\tau_t}(t)/V_{i,\tau_t}(t)$
+    \State Compute $\overline{\alpha}_{i,\tau_t}(t)=\min\{1,\widehat{\alpha}_{i,\tau_t}(t)+r_{i,\tau_t}(t)\}$
+    \State Compute the load-dependent draft-token latency $\Phi_i(L_i(t))$
+    \If{$V_{i,\tau_t}(t)=0$}
+        \State $\mathcal{G}_i(t)\gets\{g_{i,\tau_t}^{0}\}$
+    \Else
+        \State $\mathcal{G}_i(t)\gets\{1,\ldots,g_{\max}\}$
+    \EndIf
+    \For{$g\in\mathcal{G}_i(t)$}
+        \State Compute $T_i^{\mathrm{round}}(g\mid t)$ using $B_i(t)$ and $L_i(t)$
+        \State Compute $\overline{J}_{i,g}(t)=T_i^{\mathrm{round}}(g\mid t)/G(\overline{\alpha}_{i,\tau_t}(t),g)$
+        \If{$\overline{J}_{i,g}(t)<\overline{J}_{\min}$}
+            \State $\overline{J}_{\min}\gets\overline{J}_{i,g}(t)$
+            \State $i_t\gets i$, $g_t^{\mathrm{plan}}\gets g$
+        \EndIf
+    \EndFor
+\EndFor
+\State \Return $d_{i_t}$, $g_t^{\mathrm{plan}}$
+\end{algorithmic}
+\end{algorithm}
+
+The compact quantities used in the algorithm are
+\begin{equation}
+    r_{i,\tau_t}(t)
+    =
+    \sqrt{
+    \frac{\log\!\left(2N|\mathcal{T}|t^2/\delta\right)}
+    {2V_{i,\tau_t}(t)}
+    },
+    \quad
+    G(\alpha,g)=\sum_{\ell=0}^{g}\alpha^\ell,
+    \quad
+    \overline{J}_{i,g}(t)
+    =
+    \frac{T_i^{\mathrm{round}}(g\mid t)}
+    {G(\overline{\alpha}_{i,\tau_t}(t),g)}.
+    \label{eq:appendix_algorithm_quantities}
+\end{equation}
+
+\section{English Version of Algorithm 2 for Presentation}
+\label{app:english_algorithm_2}
+
+This appendix provides a compact English version of Algorithm~2 for presentation slides. The algorithm presents the entropy-aware drafting procedure as a paper-style pseudocode block.
+
+\begin{algorithm}[t]
+\caption{Entropy-Aware Dynamic Drafting}
+\label{alg:entropy_drafting_en}
+\begin{algorithmic}[1]
+\Require Selected draft model $d_{i_t}$; task type $\tau_t$; context $x_{<}$; curve parameters $\theta_{i_t,\tau_t}$; maximum draft length $g_{\max}$
+\Ensure Draft sequence $z_{1:g_t}$ and entropy sequence $H_{1:g_t}$
+\State Initialize $z_{1:0}\gets\emptyset$, $H_{1:0}\gets\emptyset$, and $\widehat{R}_0\gets0$
+\For{$\ell=1,\ldots,g_{\max}$}
+    \State Generate candidate token $z_\ell$ and distribution $q_{i_t,\ell}(\cdot)$
+    \State Compute token entropy $H_\ell=-\sum_{v\in\mathcal{V}}q_{i_t,\ell}(v)\log q_{i_t,\ell}(v)$
+    \State Compute predicted acceptance probability $\widehat{a}_\ell=\clip_{[0,1]}(\theta_{i_t,\tau_t,0}-\theta_{i_t,\tau_t,1}H_\ell)$
+    \If{$\widehat{a}_\ell<\eta_{\mathrm{acc}}$}
+        \State $g_t\gets\max\{1,\ell-1\}$
+        \State \textbf{break}
+    \EndIf
+    \State Append $z_\ell$ to the draft sequence and append $H_\ell$ to the entropy sequence
+    \State Compute $\widehat{A}_\ell=\sum_{k=1}^{\ell}\prod_{r=1}^{k}\widehat{a}_r$
+    \State Compute $\widehat{R}_\ell=\widehat{A}_\ell/T_{i_t}^{\mathrm{round}}(\ell\mid t)$
+    \If{$\ell>1$ and $\widehat{R}_\ell<\widehat{R}_{\ell-1}-\epsilon_{\mathrm{stop}}$}
+        \State $g_t\gets\argmax_{1\leq m\leq \ell}\widehat{R}_m$
+        \State \textbf{break}
+    \EndIf
+    \If{$\ell=g_{\max}$}
+        \State $g_t\gets\argmax_{1\leq m\leq g_{\max}}\widehat{R}_m$
+    \EndIf
+\EndFor
+\State \Return $z_{1:g_t}$, $H_{1:g_t}$
+\end{algorithmic}
+\end{algorithm}
+
+The compact quantities used in the algorithm are
+\begin{equation}
+    H_\ell
+    =
+    -\sum_{v\in\mathcal{V}}q_{i_t,\ell}(v)\log q_{i_t,\ell}(v),
+    \quad
+    \widehat{a}_\ell
+    =
+    \clip_{[0,1]}\!\left(\theta_{i_t,\tau_t,0}-\theta_{i_t,\tau_t,1}H_\ell\right),
+    \quad
+    \widehat{R}_\ell
+    =
+    \frac{\sum_{k=1}^{\ell}\prod_{r=1}^{k}\widehat{a}_r}
+    {T_{i_t}^{\mathrm{round}}(\ell\mid t)}.
+    \label{eq:appendix_algorithm_2_quantities}
+\end{equation}
+
+\begin{thebibliography}{99}
+
+\bibitem{leviathan2023speculative}
+Y.~Leviathan, M.~Kalman, and Y.~Matias,
+``Fast inference from transformers via speculative decoding,''
+in \emph{Proc. International Conference on Machine Learning (ICML)}, 2023.
+
+\bibitem{chen2023speculative}
+C.~Chen, S.~Borgeaud, G.~Irving, J.-B. Lespiau, L.~Sifre, and J.~Jumper,
+``Accelerating large language model decoding with speculative sampling,''
+arXiv preprint arXiv:2302.01318, 2023.
+
+\bibitem{williams2009roofline}
+S.~Williams, A.~Waterman, and D.~Patterson,
+``Roofline: An insightful visual performance model for multicore architectures,''
+\emph{Communications of the ACM}, vol.~52, no.~4, pp.~65--76, 2009.
+
+\bibitem{goldsmith2005wireless}
+A.~Goldsmith,
+\emph{Wireless Communications}.
+Cambridge University Press, 2005.
+
+\bibitem{tse2005fundamentals}
+D.~Tse and P.~Viswanath,
+\emph{Fundamentals of Wireless Communication}.
+Cambridge University Press, 2005.
+
+\bibitem{auer2002finite}
+P.~Auer, N.~Cesa-Bianchi, and P.~Fischer,
+``Finite-time analysis of the multiarmed bandit problem,''
+\emph{Machine Learning}, vol.~47, no.~2--3, pp.~235--256, 2002.
+
+\bibitem{lattimore2020bandit}
+T.~Lattimore and C.~Szepesvari,
+\emph{Bandit Algorithms}.
+Cambridge University Press, 2020.
+
+\end{thebibliography}
+
+\end{document}

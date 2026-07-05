@@ -1,0 +1,433 @@
+        Task Profiling and Draft Model Selection for
+        Accelerating Distributed Speculative Decoding
+                                  Jialin Dong, Yaodan Xu, Tan Chen, Sheng Zhou, Zhisheng Niu
+                          Department of Electronic Engineering, Tsinghua University, Beijing, China
+                    djl23@mails.tsinghua.edu.cn, xyd21@mails.tsinghua.edu.cn, chent21@mails.tsinghua.edu.cn,
+                                    sheng.zhou@tsinghua.edu.cn, niuzhs@mail.tsinghua.edu.cn
+
+
+   Abstract—Speculative Decoding (SD) has emerged as an ef-                                                                      Reasoning Intensity
+fective strategy to accelerate Large Language Model (LLM)
+                                                                                                                     Low                                 High
+inference by leveraging lightweight draft models to speculate
+candidate tokens. The heterogeneity of devices in edge-cloud                                           • Paragraph Translation              • Image Understanding
+
+
+
+
+                                                                                                Low
+systems provides a unique opportunity to deploy task-specialized
+
+
+
+
+                                                                                 Task Entropy
+draft models, leveraging each device’s distinctive computational                                       • Keyword Spotting                   • Mathematical Reasoning
+profile to maximize speculative efficiency. However, existing draft
+model selection strategies often neglect the impact of task profiles.                                  • Ad Slogan Generation               • Video Generation
+
+
+
+
+                                                                                                High
+To address this gap, we propose D-PROMISE (Distributed task
+                                                                                                       • Role-Playing Dialogue              • Complex Code Generation
+PROfiling based draft Model Selection Engine), a framework
+that minimizes end-to-end inference latency through request-level
+optimization. Specifically, D-PROMISE categorizes the task into                 Fig. 1: Task profiling based on task entropy and reasoning
+four types based on its task entropy and reasoning intensity. The               intensity.
+engine maintains statistical records of draft model proficiencies
+across these categories to predict task-specific acceptance rates.
+Simultaneously, D-PROMISE monitors real-time edge device                        the two models; a higher 𝛼 increases the expected number of
+dynamics, including computational loads and wireless channel                    valid tokens confirmed in a single pass, thereby significantly
+conditions. Taking task profiling and dynamic device states into
+consideration, the scheduler identifies the optimal device and                  accelerating the inference process.
+speculative length for each request. Trace-driven simulations,                     Previous SD studies primarily focus on centralized de-
+parameterized with empirical hardware and network profiles,                     ployments, co-locating a static, pre-trained draft model with
+show that D-PROMISE achieves up to a 45% increase in                            the target model in the cloud. However, this paradigm is
+inference speed compared to task-agnostic speculative decoding,
+demonstrating the necessity of integrating task profiling and                   inherently limited in scalability and adaptability within the
+device dynamics for speculative inference.                                      increasingly prevalent edge-cloud landscape. In such environ-
+                                                                                ments, a massive pool of heterogeneous edge devices, ranging
+                          I. I NTRODUCTION                                      from smartphones to PCs, often host locally fine-tuned draft
+   The rapid evolution of LLMs has unlocked immense po-                         models tailored to specific user-end tasks. Storing all these
+tential across diverse domains [1]. However, their deployment                   models on a single cloud server is impractical due to the
+in interactive applications is severely constrained by the high                 massive memory requirements and the potential privacy risks
+end-to-end latency of auto-regressive decoding. Speculative                     associated with uploading local model weights. To address
+Decoding (SD) has emerged as a transformative accelera-                         these challenges, we leverage a distributed edge-cloud archi-
+tion paradigm. Unlike traditional decoding, SD decomposes                       tecture where the resource-intensive target model remains on
+the inference process into a propose-then-verify pipeline: it                   the cloud server, while the pre-existing, domain-specific draft
+leverages a lightweight draft model to rapidly generate a                       models are maintained at the edge. This collaborative strategy
+sequence of 𝐾 candidate tokens, which are then verified                         not only preserves data privacy but also exploits the specialized
+and corrected in parallel by the target model in a single                       proficiencies and idle computational resources of edge nodes.
+forward pass. This mechanism mathematically guarantees that                     Nevertheless, effectively utilizing these distributed resources
+generated outputs are identical to those of the target model                    is non-trivial: edge devices exhibit significant variance in
+through provably equivalent sampling algorithms [2], [3]. The                   hardware capabilities, and their performance is also subject
+efficacy of this paradigm heavily relies on the acceptance rate                 to stochastic local workloads and fluctuating wireless channel
+(𝛼)—the probability that speculated tokens accepted by the                      conditions. Consequently, the problem lies in coordinating task
+target model. Crucially, the theoretical speedup is a function                  profiles with these dynamic system states to optimize draft
+of both 𝛼 and the relative computational overhead between                       model selection for inference acceleration.
+                                                                                   Recent studies highlight that task characteristics signifi-
+   This work is supported in part by the Open Fund of State Key Laboratory of   cantly impact speculative decoding efficacy. Specifically, draft
+Intelligent Green Vehicle and Mobility, Tsinghua University, and the project
+of Tsinghua University-Toyota Joint Research Center for AI Technology of        models exhibit distinct domain preferences [4], while accep-
+Automated Vehicle.                                                              tance rates correlate strongly with drafted token entropy [5]
+and reasoning intensity [6]. Synthesizing these insights, we
+categorize requests based on two dimensions: task entropy and
+reasoning intensity, which are further formulated in Section
+II-B. Task entropy is quantified by the average information
+entropy of the target model’s output token distribution, while
+reasoning intensity is characterized via logical depth, the
+number of sequential reasoning steps required to reach the
+final answer, as illustrated in Fig. 1. D-PROMISE employs a
+lightweight classifier to map incoming tasks to these profiles,
+leveraging historical proficiency logs—maintained via multi-
+armed bandit learning—as task-specific priors for optimiza-
+tion.
+   Beyond task semantics, edge-cloud SD is constrained by               Fig. 2: Architecture of the D-PROMISE framework.
+device dynamics. Ref. [7] identifies a critical memory satura-
+tion threshold, beyond which resource contention triggers non-     and fallback generation to guarantee lossless output. 2) D-
+linear latency degradation. Additionally, uplink transmission of   PROMISE: the control engine deployed on the server. It
+speculated tokens incurs communication overhead modulated          integrates the task analyzer for task profiling and the adaptive
+by time-varying wireless channel quality. To address these, we     scheduling core including the resource monitor and latency-
+propose D-PROMISE, a framework for request-level optimiza-         predictive scheduler. Heterogeneous device pool is a set of
+tion in edge-cloud environments.                                   𝑁 worker devices, denoted as 𝒟 = {𝑑1 , 𝑑2 , . . . , 𝑑𝑁 }. These
+   Our contributions are summarized as follows:                    devices (e.g., laptops, tablets, or smartphones) function as
+   ∙ Multi-Dimensional Task Profiling: We propose a taxon-         potential draft models. Each device 𝑑𝑖 loads a lightweight draft
+                                                                               (𝑖)
+      omy categorizing incoming prompts by task entropy and        model ℳ𝑑𝑟𝑎𝑓 𝑡 .
+      reasoning intensity. By mapping tasks to four types, we         The inference process proceeds in three phases (Fig. 2):
+      enable granular, context-aware prediction of acceptance      First, the task analyzer profiles the prompt while the resource
+                                                                                                                (𝑖)
+      rates across heterogeneous models.                           monitor aggregates the model profile ℳ𝑑𝑟𝑎𝑓 𝑡 and dynamic
+   ∙ Task-Adaptive Draft Model Selection Framework:                real-time conditions, specifically the computational load 𝐿𝑖 (𝑡)
+      We develop D-PROMISE to perform request-level opti-          and channel bandwidth 𝐵𝑖 (𝑡). Second, the scheduler executes
+      mization. By aligning task characteristics with real-time    D-PROMISE to select the optimal device 𝑑* and length
+      computational loads and channel conditions, the engine       𝛾 * . Finally, the server and 𝑑* execute speculative decoding
+      jointly optimizes the draft device and speculative length.   iteratively.
+      Trace-driven simulations show up to 45% speedup over
+      task-agnostic SD baselines.                                  B. Task Profiling
+        II. S YSTEM A RCHITECTURE AND P ROBLEM                        As shown in Fig. 2, the task analyzer outputs a task-type
+                      F ORMULATION                                 label 𝜏 by classifying each request along two attributes: task
+   In this section, we present the architecture of D-PROMISE,      entropy (the inherent uncertainty of the next-token distribution)
+a collaborative inference framework designed for distributed       and reasoning intensity (the depth of multi-step reasoning
+environments characterized by heterogeneous edge devices and       required).
+a centralized high-performance server. While D-PROMISE                Task entropy is quantified by the average entropy of the
+is applicable to various scenarios (e.g., smart factories or       target model’s output distribution.
+                                                                                              ∑︀𝑇        For a sequence of length
+interactive robotics), we exemplify our framework using a          𝑇 , the score is ℋ(𝑥) ≜ 𝑇1 𝑡=1 𝐻(𝑝𝑡 (·)), where 𝐻(𝑝𝑡 ) is the
+smart office scenario. We first detail the physical entities and   Shannon entropy at step 𝑡. A request is High-Entropy (HE) if
+the logical workflow of the task profiling and draft model         ℋ(𝑥) ≥ 𝜃H ; otherwise it is categorized as Low-Entropy (LE).
+selection mechanism. Subsequently, we mathematically model         The threshold 𝜃H is selected offline on a calibration set to
+the latency dynamics under fluctuating device conditions and       ensure stable regime boundaries.
+formulate the optimization problem for latency minimization.          Reasoning intensity is characterized via logical depth, i.e.,
+                                                                   the number of sequential reasoning steps required to reach the
+A. System Overview                                                 final answer. Operationally, a lightweight depth estimator is
+   As illustrated in Fig. 2, the system consists of two primary    invoked to produce a stepwise plan consisting of 𝐾(𝑥) atomic
+physical entities: the target server and a pool of heterogeneous   reasoning steps for input 𝑥.1 The reasoning-intensity score is
+devices. Target server is a centralized high-performance com-      defined as
+puting node (e.g., an on-premise workstation) that acts as the                                 ℛ(𝑥) ≜ 𝐾(𝑥),
+system’s core. It logically contains two functional modules:
+1) GPU node: the compute engine loading the large-scale              1 In practice, 𝐾(𝑥) can be extracted by enforcing a numbered step format
+target model. It is responsible for parallel token verification    and counting the steps, without requiring the full final answer content.
+and a request is classified as High-Intensity (HI) if ℛ(𝑥) ≥ 𝜃R ;      geometric distribution. Accordingly, the expected number of
+otherwise it is classified as Low-Intensity (LI). Similar to 𝜃H ,      valid tokens per iteration E[𝑁𝑎𝑐𝑐 ] is derived as:
+𝜃R is chosen offline to provide a robust separation between                                             𝛾               𝛾+1
+                                                                                                       ∑︁
+                                                                                                            𝑘
+                                                                                                                  1 − 𝛼𝑖,𝜏
+shallow and deep-reasoning workloads.                                            E[𝑁𝑎𝑐𝑐 | 𝑑𝑖 , 𝜏, 𝛾] =    𝛼𝑖,𝜏 =            .  (2)
+                                                                                                                   1 − 𝛼𝑖,𝜏
+   In practice, the task analyzer can be instantiated as a                                              𝑘=0
+lightweight deep neural classifier that directly predicts the             To evaluate inference efficiency, the expected latency per
+task-type label 𝜏 (or the two binary attributes) from the prompt       valid token 𝑇¯𝑣𝑎𝑙𝑖𝑑 is defined as the ratio of the iteration cost
+text. Its inference time is typically at the millisecond scale,        to the expected valid tokens:
+which is negligible compared to the cumulative seconds-level                                                     𝑇𝑖𝑡𝑒𝑟 (𝑑𝑖 , 𝛾 | 𝑆(𝑡))
+                                                                                𝑇¯𝑣𝑎𝑙𝑖𝑑 (𝑑𝑖 , 𝛾 | 𝜏, 𝑆(𝑡)) =                           . (3)
+latency of end-to-end LLM decoding; accordingly, the task                                                         E[𝑁𝑎𝑐𝑐 | 𝑑𝑖 , 𝜏, 𝛾]
+analyzer’s inference latency is ignored throughout this pa-               Consequently, the orchestration problem is formulated as
+per. Moreover, since downstream acceptance-rate statistics are         finding the optimal device-configuration pair {𝑑* , 𝛾 * } that
+computed conditioned on the task analyzer’s predicted labels,          minimizes this metric under the instantaneous system state:
+any misclassification is implicitly reflected in the empirically                   min         𝑇¯𝑣𝑎𝑙𝑖𝑑 (𝑑𝑖 , 𝛾 | 𝜏, 𝑆(𝑡))
+estimated acceptance matrix 𝛼; that is, the impact of classifier               𝑑𝑖 ∈𝒟,𝛾∈Z+                                                (4)
+errors is absorbed into the acceptance-rate measurements used                           s.t. 1 ≤ 𝛾 ≤ 𝛾𝑚𝑎𝑥 , 𝑑𝑖 ∈ 𝒟𝑎𝑐𝑡𝑖𝑣𝑒 (𝑡).
+by the scheduler.                                                         Since 𝑇¯𝑣𝑎𝑙𝑖𝑑 fluctuates dynamically with both the task type
+                                                                       𝜏 and the system state 𝑆(𝑡), this optimization requires a
+C. Latency Analysis and Problem Formulation
+                                                                       lightweight per-request solving strategy, which is detailed in
+   The primary objective of D-PROMISE is to minimize end-              Section III.
+to-end inference latency through task profiling and draft model
+selection. In this formulation, the initial prompt upload and
+                                                                              III. TASK -AWARE D RAFT M ODEL S ELECTION
+final response transmission times are omitted, as they are neg-
+                                                                                             A LGORITHM
+ligible compared to the generation latency. To capture device
+heterogeneity, real-time conditions at time slot 𝑡 are repre-
+                                                                          The optimization problem in Eq. (4) requires identification
+sented by an aggregate state variable 𝑆(𝑡) ≜ {𝐵(𝑡), 𝐿(𝑡), 𝛼}.
+                                                                       of the optimal device-configuration pair {𝑑* , 𝛾 * } that mini-
+Here, 𝐵(𝑡) denotes the vector of device-specific real-time
+                                                                       mizes the expected latency per valid token. A key challenge
+bandwidths, while 𝐿(𝑡) represents the fluctuating device-
+                                                                       is that the optimal solution is non-stationary, shifting with
+specific computational load. Furthermore, 𝛼 constitutes the
+                                                                       the task category of the request (denoted as 𝜏 ) and the
+task-dependent acceptance-rate matrix. This alignment infor-
+                                                                       instantaneous environmental state 𝑆(𝑡). To address this, D-
+mation is assumed to be encapsulated within the draft model
+            (𝑖)                                                        PROMISE is introduced as a request-level scheduling policy
+profile ℳ𝑑𝑟𝑎𝑓 𝑡 and made available as prior knowledge derived
+                                                                       operating over a finite, pre-defined set of four task categories
+from historical statistics.
+                                                                       𝒯 . Upon arrival, each prompt is mapped to a specific type
+   The physical wall-clock time required for a single specula-         𝜏 ∈ 𝒯 by the lightweight classifier. The resulting label 𝜏 is
+tive iteration is denoted as 𝑇𝑖𝑡𝑒𝑟 . When device 𝑑𝑖 is selected        then used to index the task-dependent acceptance matrix 𝛼
+with a draft length 𝛾, the latency is decomposed into three            and guide the joint selection of the drafting device and draft
+components: draft-model inference latency, communication               length {𝑑* , 𝛾 * } for each request.
+latency, and target-model verification latency. The drafting
+latency is modeled as 𝛾 · Φ𝑖 (𝐿𝑖 (𝑡)), where Φ𝑖 (·) is a device-
+specific profiling function that maps the current load 𝐿𝑖 (𝑡)          A. Device Profiling and Initialization
+to the per-token generation time. The communication latency
+                                                                          To minimize online scheduling overhead, profiling is de-
+accounts for transmitting the payload of 𝛾 token distribution
+                                                                       coupled from real-time decision-making in D-PROMISE. Two
+and IDs (each of size 𝑆𝑡𝑜𝑘𝑒𝑛 ) and protocol headers (𝑆ℎ𝑒𝑎𝑑𝑒𝑟 )
+                                                                       distinct knowledge bases are maintained to support the rapid
+over the time-varying channel 𝐵𝑖 (𝑡), together with other
+                                                                       evaluation of the objective metric 𝑇¯𝑣𝑎𝑙𝑖𝑑 . First, the task
+delays captured by 𝛿𝑖 . Combining these with the constant
+                                                                       alignment is handled via the acceptance rate matrix 𝛼. As
+verification time 𝑇𝑣𝑒𝑟𝑖𝑓 𝑦 on the target server, the total iteration
+                                                                       defined in Section II-C, this static prior maps the identified
+latency is formulated as:
+                                                                       task category 𝜏 to the specific acceptance probability of each
+   𝑇𝑖𝑡𝑒𝑟 (𝑑𝑖 , 𝛾 | 𝑆(𝑡)) = 𝛾 · Φ𝑖 (𝐿𝑖 (𝑡)) + 𝑇𝑣𝑒𝑟𝑖𝑓 𝑦                  device, serving as the basis for effective latency estimation.
+                               (︂                         )︂
+                                  𝛾𝑆𝑡𝑜𝑘𝑒𝑛 + 𝑆ℎ𝑒𝑎𝑑𝑒𝑟              (1)   Second, the physical drafting capability is characterized by
+                            +                         + 𝛿𝑖 .
+                                         𝐵𝑖 (𝑡)                        device-specific profiling functions Φ𝑖 (·). Obtained via offline
+   While 𝑇𝑖𝑡𝑒𝑟 captures the physical cost, the acceleration gain       regression, these functions allow the scheduler to instantly
+depends on the quantity of valid tokens generated. Let 𝛼𝑖,𝜏            estimate the per-token drafting latency 𝑡𝑑𝑟𝑎𝑓 𝑡 = Φ𝑖 (𝐿𝑖 (𝑡))
+denote the acceptance probability when device 𝑑𝑖 serves a              given the current load. This pre-computation eliminates the
+request of task type 𝜏 . Assuming token verification outcomes          need for intrusive real-time benchmarking, ensuring that draft
+are i.i.d., the number of accepted tokens follows a truncated          model selection latency remains negligible.
+Algorithm 1 D-PROMISE: Distributed task PROfiling based              pre-evaluated benchmarks that map specific device capabil-
+draft Model Selection Engine                                         ities to the four task categories. To maintain the matrix’s
+Require: task category 𝜏 ∈ 𝒯 , system state 𝑆(𝑡) =                   accuracy in dynamic environments, D-PROMISE can leverage
+    {𝐵(𝑡), 𝐿(𝑡), 𝛼}, constants 𝑆𝑡𝑜𝑘𝑒𝑛 , 𝑆ℎ𝑒𝑎𝑑𝑒𝑟 , 𝛾𝑚𝑎𝑥 , 𝛿𝑖 , edge   the inherent verification step of speculative decoding, which
+    auto-regressive inference latency 𝑇𝑎𝑢𝑡𝑜                          naturally provides the ground truth acceptance count for every
+Ensure: optimal decision {𝑑* , 𝛾 * }                                 iteration without additional labeling overhead. By treating each
+ 1: Initialize: ℒ𝑚𝑖𝑛 ← 𝑇𝑎𝑢𝑡𝑜 , 𝑑* ← Edge, 𝛾 * ← 0                    inference request as a learning sample, the framework can
+ 2: for each device 𝑑𝑖 ∈ 𝒟𝑎𝑐𝑡𝑖𝑣𝑒 do                                  iteratively refine its proficiency estimates using reinforcement
+ 3:   Retrieve prior 𝛼𝑖,𝜏 from 𝛼, 𝐵𝑖 and 𝐿𝑖 from 𝑆(𝑡);               learning concepts, such as Multi-Armed Bandit (MAB) up-
+ 4:   for 𝛾 = 1 to 𝛾𝑚𝑎𝑥 do                                           dates or moving average statistics. This iterative feedback loop
+ 5:      𝑡𝑐𝑜𝑚𝑚 ← (𝛾 · 𝑆𝑡𝑜𝑘𝑒𝑛 + 𝑆ℎ𝑒𝑎𝑑𝑒𝑟 )/𝐵𝑖 + 𝛿𝑖 ;                   ensures that the matrix remains responsive to updates in local
+ 6:      𝑇𝑖𝑡𝑒𝑟 ← 𝛾 · Φ𝑖 (𝐿𝑖 ) + 𝑡𝑐𝑜𝑚𝑚 + 𝑇𝑣𝑒𝑟𝑖𝑓 𝑦 ;                   draft models, shifts in task distributions, or changes in edge
+                             𝛾+1                                     device performance.
+ 7:      E[𝑁𝑎𝑐𝑐 ] ← (1 − 𝛼𝑖,𝜏    )/(1 − 𝛼𝑖,𝜏 );
+ 8:      ℒ𝑐𝑢𝑟𝑟 ← 𝑇𝑖𝑡𝑒𝑟 /E[𝑁𝑎𝑐𝑐 ];                                       The computational complexity of the D-PROMISE algo-
+ 9:      if ℒ𝑐𝑢𝑟𝑟 < ℒ𝑚𝑖𝑛 then                                        rithm is 𝑂(𝑁 · 𝛾𝑚𝑎𝑥 ), where 𝑁 denotes the number of
+10:         ℒ𝑚𝑖𝑛 ← ℒ𝑐𝑢𝑟𝑟 , 𝑑* ← 𝑑𝑖 , 𝛾 * ← 𝛾;                        active candidates and 𝛾𝑚𝑎𝑥 represents the maximum draft
+11:      else if ℒ𝑐𝑢𝑟𝑟 == ℒ𝑚𝑖𝑛 and 𝐿𝑖 < 𝐿𝑑* then                     length. In practical edge computing scenarios, the size 𝑁 is
+12:         𝑑* ← 𝑑𝑖 , 𝛾 * ← 𝛾;                                       naturally limited and 𝛾𝑚𝑎𝑥 is a bounded integer. Consequently,
+13:      end if                                                      the execution time of the scheduling logic remains in the
+14:   end for                                                        microsecond regime. Given that end-to-end inference typically
+15: end for                                                          spans the second-level timescale, this overhead is negligible,
+16: return {𝑑* , 𝛾 * };                                              ensuring seamless real-time adaptation.
+
+                                                                                   IV. P ERFORMANCE E VALUATION
+B. Online Scheduling Strategy
+                                                                        In this section, we evaluate the performance of D-PROMISE
+   The execution logic of D-PROMISE is formalized in Algo-           through trace-driven simulations. Our experiments aim to
+rithm 1. Upon receiving a request, the task analyzer identifies      validate: (1) the efficacy of task profiling in exploiting the
+the task category 𝜏 and captures the instantaneous system state      diversity of heterogeneous edge devices; (2) the significant
+𝑆(𝑡). To guarantee system robustness, the latency baseline           inference latency speedup compared to heuristic baselines;
+ℒ𝑚𝑖𝑛 is initialized to 𝑇𝑎𝑢𝑡𝑜 , representing the standard autore-     and (3) the algorithmic robustness under volatile network
+gressive inference time on the edge server. This establishes an      conditions and computing load saturation.
+implicit fallback mechanism: if network degradation or high
+device contention renders distributed speculation inefficient        A. Experimental Setup
+(i.e., the computed 𝑇¯𝑣𝑎𝑙𝑖𝑑 for all candidates exceeds 𝑇𝑎𝑢𝑡𝑜 ),         A discrete-event simulator is developed to model the inter-
+the system automatically defaults to local edge-only inference.      action between the target server and a pool of heterogeneous
+   The core scheduling loop iterates through all active devices      edge devices 𝒟. The simulation incorporates realistic hardware
+in 𝒟𝑎𝑐𝑡𝑖𝑣𝑒 . For each candidate, D-PROMISE evaluates the             profiles, stochastic channel models, and inference character-
+expected latency per valid token 𝑇¯𝑣𝑎𝑙𝑖𝑑 across the feasible draft   istics derived from empirical measurements. We assume the
+length space 𝛾 ∈ [1, 𝛾𝑚𝑎𝑥 ]. This step quantifies the trade-         pool of edge devices 𝒟 consists of three distinct devices: a
+off between amortizing the fixed communication overhead              smartphone, a tablet, and a laptop. The drafting capabilities
+(favoring larger 𝛾) and accumulating drafting latency. Cru-          are profiled based on representative open-source LLMs with
+cially, by incorporating the task-specific acceptance rate 𝛼𝑖,𝜏 ,    parameter scales appropriate for each device’s hardware con-
+the metric penalizes devices that are semantically misaligned        straints. As summarized in Table I, their drafting latencies
+with the current task. This mechanism prevents the selection         (𝑡𝑑𝑟𝑎𝑓 𝑡 ) and scale assumptions reflect empirical benchmarks
+of devices that possess high raw computational throughput            [8].
+but lack the specific domain expertise required for efficient           The inference requests are divided into four types by
+speculation. Finally, to resolve ties in occasional homogeneous      task entropy and reasoning intensity where LE/HE denote
+environments, D-PROMISE prioritizes the device with the              low-/high-task-entropy inputs and LI/HI denote low-/high-
+lower current load 𝐿𝑖 (𝑡), thereby promoting load balancing          reasoning-intensity requests. The core premise of our simula-
+before dispatching the optimal configuration {𝑑* , 𝛾 * }.            tion is that the acceptance rate 𝛼𝑖,𝜏 is determined by the inter-
+   The acceptance rate matrix 𝛼 serves as the critical alignment     action between (i) device-constrained model capability and (ii)
+layer between diverse task profiles and the heterogeneous            the intrinsic difficulty of tasks. Consistent with this premise,
+pool of draft models. To obtain and maintain these task-             acceptance rates increase roughly with model strength. At
+specific acceptance rates, a hybrid strategy involving offline       the same time, HE tasks exhibit uniformly lower acceptance
+initialization and online adaptation is considered. Initially,       than LE tasks due to higher uncertainty and reduced target
+the matrix is populated using historical proficiency logs or         model agreement. HI tasks lead to lower acceptance rates
+               TABLE I: Simulation Parameters                                2.5
+                                                                                        2.45
+                                                                                                                          Edge-Only            Task-Agnostic SD
+      Parameter                          Value                                                                            Laptop-Only          D-PROMISE
+
+                                                  (𝑖)                        2.0     1.90
+                Heterogeneous Device Profiling (𝑡𝑑𝑟𝑎𝑓 𝑡 )                                      1.81   1.81
+                                                                                                                                                          1.70
+      Smartphone (NPU, ∼ 500M)           4.0 ms/token                                                              1.48
+                                                                             1.5
+
+
+
+
+                                                                   Speedup
+                                                                                                               1.39                                1.401.39
+      Tablet (Balanced, ∼ 3B)            10.0 ms/token
+      Laptop (High-Perf, ∼ 7B)           20.0 ms/token
+                                                                                                                                1.04    1.05
+                                                                                                                                                1.00
+          Acceptance Rate Matrix 𝛼 (Phone, Tablet, Laptop)                   1.0
+
+      LE-LI                              [0.75, 0.78, 0.80]
+      LE-HI                              [0.35, 0.50, 0.85]                  0.5
+      HE-LI                              [0.50, 0.55, 0.50]
+      HE-HI                              [0.10, 0.30, 0.40]
+                                                                             0.0
+                   Target Server & Device Dynamics                                 LE-LI       LE-HI         HE-LI             HE-HI              Average
+
+      Target Model Latency (𝑇𝐴𝑅 )        100.0 ms/token                      Fig. 3: Speedup comparison across different task types.
+      Verification Latency (𝑇𝑣𝑒𝑟𝑖𝑓 𝑦 )   100.0 ms
+      Comm. Header (𝑆ℎ𝑒𝑎𝑑𝑒𝑟 )            800 bits (100 Bytes)
+      Token Payload (𝑆𝑡𝑜𝑘𝑒𝑛 )            8000 bits (1000 Bytes)
+                                                                   device using only the historical average acceptance rate 𝛼      ¯𝑖,
+      Downlink Bandwidth (𝐵(𝑡))          𝒩 (𝜇 = 20, 𝜎 = 5) Mbps    ignoring the task-specific alignment of the current request 𝜏 .
+      Fixed latency (𝛿𝑖 )                5.0 ms                       Based on the system configurations and device profiles es-
+                                                                   tablished above, we conduct extensive trace-driven simulations
+than LI tasks due to insufficient thinking depth for lightweight   to evaluate end-to-end latency under heterogeneous devices
+models. This effect is most pronounced on the Smartphone,          and workload regimes. Fig. 3 reports the inference speedup
+whose limited model capacity causes a sharp degradation            of each strategy relative to Edge-Only across four task types
+under HE-HI, where both uncertainty and reasoning demands          𝜏 ∈ {LE-LI, LE-HI, HE-LI, HE-HI} and their average. Over-
+peak. In contrast, the Laptop’s draft model is specialized for     all, D-PROMISE achieves the best aggregate performance,
+high reasoning intensity, which yields a noticeable advantage      delivering an average speedup of 1.70, outperforming Laptop-
+in LE-HI. The adopted numerical range of 𝛼 ∈ [0.10, 0.85]          Only and Task-Agnostic SD. This indicates that explicitly task
+is consistent with empirical acceptance probabilities reported     profiling yields consistent end-to-end latency gains beyond
+in recent speculative decoding benchmarks across diverse           static specialization or purely statistics-driven scheduling.
+datasets [9]–[11].                                                    The performance breakdown reveals that the largest gains
+   For the target server, we assume a 70B parameter model          occur in regimes with high acceptance probabilities, specif-
+(e.g., Llama-3-70B scale) is loaded. Consistent with perfor-       ically LE-LI, where D-PROMISE achieves a peak 2.45×
+mance reports from production-grade inference engines (e.g.,       speedup. By exploiting high target model agreement in this
+vLLM on NVIDIA A100/H100 clusters) [12], [13], we set              low-entropy setting, the engine effectively balances drafting
+the baseline autoregressive latency 𝑇𝐴𝑅 to 100 ms per token.       cost against token yield to outperform all baselines. In the
+We model the volatile wireless communication bandwidth             reasoning-intensive LE-HI regime, D-PROMISE attains 1.81×
+𝐵(𝑡) as a truncated Gaussian distribution (𝜇 = 20, 𝜎 = 5           speedup, matching the robust Laptop-Only policy. This high-
+Mbps) with a 800-bit protocol overhead and assume the fixed        lights a boundary case where reasoning-specialized models are
+communication latency as 5ms. For computation load, we             near-optimal; crucially, D-PROMISE preserves these specialist
+adopt the well-established nonlinear saturation model [14],        benefits while retaining the flexibility to switch devices for
+where the latency penalty scales linearly in the under-utilized    other task types. As task entropy rises, benefits naturally
+region (𝐿(𝑡) < 0.6) but exhibits exponential growth near           diminish, though D-PROMISE maintains a lead in HE-LI
+saturation (𝐿(𝑡) → 1.0) due to severe resource contention.         (1.48×). However, in the most challenging HE-HI regime,
+Specifically, the latency penalty is then modeled as               all methods converge close to the Edge-Only baseline. This
+                                                                   indicates that when high uncertainty and reasoning demands
+                ⎧
+                ⎨1 + 0.5 𝐿(𝑡),                  𝐿(𝑡) < 0.6,
+                ⎪
+                                                                   coincide, low draft acceptance limits attainable acceleration
+                ⎪
+     𝜑(𝐿(𝑡)) ≜ 1 + 0.5 𝐿(𝑡)+                                       regardless of the scheduling policy. Such convergence aligns
+                ⎪                               𝐿(𝑡) ≥ 0.6,
+                                                                   with our latency model, confirming that verification overheads
+                ⎪
+                   exp(10(𝐿(𝑡) − 0.6)) − 1,
+                ⎩
+                                                                   dominate the latency budget when speculative success be-
+B. Task-Aware Scheduling Speedup Analysis                          comes rare.
+   To evaluate the effect of task profiling, we benchmark             A critical insight arises from the contrast between D-
+D-PROMISE against the standard non-speculative inference           PROMISE and Task-Agnostic SD. While Task-Agnostic SD
+baseline and two representative SD strategies. The Edge-Only       relies on aggregate statistics (𝛼¯ 𝑖 ), implicitly treating devices
+baseline executes the entire inference on the target server        as generalists, this simplification obscures the true utility of
+without speculative decoding. Laptop-Only represents a static      heterogeneous devices (e.g., reasoning specialists). By ex-
+compute-centric policy that delegates all drafting tasks to        plicitly modeling task alignment, D-PROMISE exploits these
+the device with the strongest on-device model. Task-Agnostic       specialized advantages while maintaining robustness. Further-
+SD is an optimization-based baseline that selects the drafting     more, the results demonstrate that speculative decoding is not
+                    140                                                                                      heterogeneous resource pool to dynamically steer requests
+                                                                                                             away from overloaded nodes and toward devices with avail-
+Avg. Latency (ms)
+
+                    120                                                                                      able capacity, thereby avoiding the most severe saturation
+                                                                                                             regimes. This adaptive load-aware behavior and fall-back
+                    100                                                                                      mechanism result in smoother degradation and consistently
+                                                                                                             lower latency than baselines, even under near-saturation con-
+                     80                                                                                      ditions. Overall, Fig. 4 confirms that D-PROMISE is robust
+                                                                                                             to both communication-limited and computation-limited ex-
+                     60                                                                                      tremes, validating its resilience against severe runtime hetero-
+                          100      50          20    10          5          2      1         0.5      0.25
+                                        Average Network Bandwidth (Mbps)                                     geneity.
+                                (a) Impact of Wireless Channel Degradation                                                          V. C ONCLUSION
+                    140
+                                                                                                                In this paper, we proposed D-PROMISE, a request-level
+                                                                                                             framework designed to accelerate distributed speculative de-
+Avg. Latency (ms)
+
+
+
+
+                    120
+                                                                                                             coding by effectively coordinating task characteristics with
+                    100                                                                                      heterogeneous edge resources. Crucially, our analysis reveals
+                                                                                                             that speculative decoding is not universally beneficial; signifi-
+                     80                                                                                      cant acceleration is realized only under specific task regimes,
+                                                                                                             making granular task classification a prerequisite for efficient
+                     60                                                                                      deployment. To address this, D-PROMISE introduces a novel
+                          0.10           0.30             0.50       0.60   0.70   0.80       0.90 0.98
+                                               Average Device Load (Ratio)                                   task profiling taxonomy based on task entropy and reasoning
+                                   Edge-Only        Laptop-Only                        Task-Agnostic SD      intensity to capture the distinct preferences of draft mod-
+                                   D-PROMISE        D-PROMISE (w/o Fallback)                                 els. Trace-driven evaluations demonstrate that D-PROMISE
+                                                                                                             achieves an average speedup of 1.70 over auto-regressive in-
+                                   (b) Impact of Device Load Saturation
+                                                                                                             ference and significantly outperforms task-agnostic speculative
+                    Fig. 4: Robustness analysis under extreme conditions.
+                                                                                                             decoding with up to 45% performance gain. Furthermore,
+                                                                                                             robustness analysis confirms that D-PROMISE maintains low
+universally beneficial; significant acceleration is contingent
+                                                                                                             latency even under extreme conditions.
+on task feasibility. Consequently, granular task classification
+serves as a prerequisite for efficient deployment rather than                                                                             R EFERENCES
+a mere optimization. By avoiding indiscriminate speculation                                                   [1] J. Achiam, S. Adler, S. Agarwal, L. Ahmad, I. Akkaya, F. L. Aleman,
+in low-agreement contexts, D-PROMISE achieves superior                                                            D. Almeida, J. Altenschmidt, S. Altman, S. Anadkat et al., “Gpt-4
+                                                                                                                  technical report,” arXiv preprint arXiv:2303.08774, 2023.
+performance compared to the task-agnostic baseline.                                                           [2] Y. Leviathan et al., “Fast inference from transformers via speculative
+                                                                                                                  decoding,” in ICML, 2023.
+C. Robustness Analysis                                                                                        [3] C. Chen, S. Borgeaud, G. Schmitt, H. Lochner, K. Silver, L. Weidinger
+   We stress-test D-PROMISE under two extreme sources                                                             et al., “Accelerating large language model decoding with speculative
+                                                                                                                  sampling,” arXiv preprint arXiv:2302.01318, 2023.
+of device heterogeneity—wireless channel degradation and                                                      [4] D. Ge, J. Gao, Q. Jiang, Y. Feng, and W. Ji, “Automatic task de-
+device load saturation (Fig. 4). Across both scenario, D-                                                         tection and heterogeneous llm speculative decoding,” arXiv preprint
+PROMISE maintains the lowest latency per token, demonstrat-                                                       arXiv:2505.08600, 2025.
+                                                                                                              [5] T. Su, M. Zhang, and G. He, “Entropy-aware speculative decoding
+ing that its per-request scheduling remains effective even when                                                   toward improved llm reasoning,” arXiv preprint arXiv:2512.23765,
+the underlying system state 𝑆(𝑡) becomes highly unfavorable.                                                      2025.
+   As the wireless bandwidth 𝐵(𝑡) decreases (Fig. 4a), com-                                                   [6] Y. Fu, R. Ge, Z. Shao, Z. Deng, and H. Zhang, “Scaling speculative
+                                                                                                                  decoding with lookahead reasoning,” arXiv preprint arXiv:2506.19830,
+munication overhead increasingly dominates the iteration cost,                                                    2025.
+and speculative decoding is only beneficial if each transmis-                                                 [7] D. Xu, W. Yin, H. Zhang, X. Jin, Y. Zhang, S. Wei, M. Xu, and X. Liu,
+sion yields sufficient committed token (i.e., high 𝛼𝑖,𝜏 ). D-                                                     “Edgellm: Fast on-device llm inference with speculative decoding,”
+                                                                                                                  IEEE Transactions on Mobile Computing, 2024.
+PROMISE mitigates this by adapting the device selection                                                       [8] Y. Zhang et al., “Clone: Customizing llms for efficient latency-aware
+and configuration to preserve a favorable acceptance–overhead                                                     inference at the edge,” arXiv preprint arXiv:2506.02847, 2025.
+trade-off, rather than blindly offloading drafts when the chan-                                               [9] H. Xia et al., “Spec-bench: A comprehensive benchmark for speculative
+                                                                                                                  decoding,” arXiv preprint arXiv:2401.07851, 2024.
+nel is poor. Notably, when the network becomes prohibitive,                                                  [10] Y. Li et al., “Eagle: Speculative sampling requires rethinking feature
+D-PROMISE activates its fallback to edge-only execution,                                                          uncertainty,” in ICML, 2024.
+preventing the latency blow-up that arises from repeatedly                                                   [11] Z. Liu et al., “Mobilellm: Optimizing sub-billion parameter language
+                                                                                                                  models for on-device use cases,” arXiv preprint arXiv:2402.14905, 2024.
+paying high communication costs for low speculation gain.                                                    [12] Databricks, “Introducing llama2-70b-chat with mosaicml inference,”
+   When the device experiences heavy contention and the                                                           2023, databricks Blog.
+average device load 𝐿(𝑡) approaches saturation (Fig. 4b),                                                    [13] G. Developers, “Optimizing llm inference for minimal latency with
+                                                                                                                  vllm,” 2024, google Developer Forums.
+static policies exhibit fragile behavior: pinning draft model                                                [14] D. Lo, L. B. Cheng, R. Govindaraju, P. Ranganathan, and C. Kozyrakis,
+to a fixed device amplifies congestion effects and leads to                                                       “Heracles: Improving resource efficiency at scale,” in Proc. ACM/IEEE
+sharp latency growth. In contrast, D-PROMISE leverages the                                                        ISCA, 2015, pp. 450–462.
+

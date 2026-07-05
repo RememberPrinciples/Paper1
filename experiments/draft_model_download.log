@@ -1,0 +1,9 @@
+MODEL_START repo=TinyLlama/TinyLlama_v1.1 local_dir=/root/autodl-tmp/Model/TinyLlama-1.1B-Draft
+MODEL_SIZE repo=TinyLlama/TinyLlama_v1.1 total=4.10GB
+ATTEMPT_START repo=TinyLlama/TinyLlama_v1.1 strategy=mirror_w4 endpoint=https://hf-mirror.com workers=4
+CHILD /root/miniconda3/envs/SD_Blackwell/lib/python3.12/site-packages/huggingface_hub/utils/_validators.py:189: UserWarning: The `resume_download` argument is deprecated and ignored in `snapshot_download`. Downloads always resume whenever possible.
+PROGRESS repo=TinyLlama/TinyLlama_v1.1 strategy=mirror_w4 downloaded=122.64MB total=4.10GB interval_mbps=2.04 avg_mbps=2.04 eta_min=33.2
+PROGRESS repo=TinyLlama/TinyLlama_v1.1 strategy=mirror_w4 downloaded=252.64MB total=4.10GB interval_mbps=2.17 avg_mbps=2.11 eta_min=31.2
+PROGRESS repo=TinyLlama/TinyLlama_v1.1 strategy=mirror_w4 downloaded=372.64MB total=4.10GB interval_mbps=2.00 avg_mbps=2.07 eta_min=30.8
+PROGRESS repo=TinyLlama/TinyLlama_v1.1 strategy=mirror_w4 downloaded=492.64MB total=4.10GB interval_mbps=2.00 avg_mbps=2.05 eta_min=30.1
+PROGRESS repo=TinyLlama/TinyLlama_v1.1 strategy=mirror_w4 downloaded=642.64MB total=4.10GB interval_mbps=2.50 avg_mbps=2.14 eta_min=27.7
