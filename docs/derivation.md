@@ -89,3 +89,35 @@ Updated `docs/System_Model_and_Algorithm.tex` according to the latest modeling c
 - Excluded draft tokens after the first rejected token in a speculative round from the acceptance-rate estimator because their outcomes are censored.
 - Updated Structured UCB to use `C_{i,tau}/V_{i,tau}` and confidence radius based on `V_{i,tau}`.
 - Expanded the communication payload model so terminal uploads include token IDs plus token-level distribution information needed by speculative decoding, represented as `S_tok = S_id + S_dist`.
+
+## 2026-07-05
+
+Reviewed the current two-layer MAB model and corrected the main consistency issues in `docs/System_Model_and_Algorithm.tex`:
+
+- Formalized the bandit objective:
+  - acceptance rate `alpha_{i,tau}` is a structured unknown parameter, not the reward;
+  - loss is TPOT `J_{i,g}=T_i^round(g|t)/G(alpha_{i,tau},g)`;
+  - equivalent reward is effective token rate `R_{i,g}=G(alpha_{i,tau},g)/T_i^round(g|t)`.
+- Added request-level loss regret:
+  `R_J(T)=sum_t [J^star_{a_t}(t)-J^star_{a_t^star}(t)]`,
+  and latency-weighted regret with output length `Y_t^out`.
+- Added target-only fallback action `a_0` with TPOT `J_0(t)=T^tar(t)`.
+- Fixed UCB cold-start division-by-zero by evaluating `C/V` and the confidence radius only when `V_{i,tau}>0`; unverified pairs use optimistic `alpha_bar=1` and cold-start length.
+- Unified edge and terminal objectives to use effective token count `G=1+A`; the entropy-aware dynamic drafting rate is now `(1+A_l)/T_round`.
+- Made `g_t^plan` the terminal dynamic drafting upper bound, so the edge action is no longer ignored by the terminal policy.
+- Fixed the first-token low-acceptance stopping bug by appending `z_1,H_1` before returning length one.
+- Tightened censored feedback semantics: standard speculative decoding only updates from the accepted prefix plus the first rejected draft token; tokens after the first rejection are counterfactual/censored.
+- Added request-level decode latency `T_req ~= Y_t^out T_round/G`.
+- Clarified that target verification latency includes the `g` draft positions plus one bonus/fallback position.
+- Clarified `S_dist` as protocol-dependent payload and constrained the entropy-acceptance curve fitting window/least-squares problem.
+
+## 2026-07-05
+
+Updated the MAB objective wording after multi-agent review of the user's `T/G` reward suggestion:
+
+- Adopted `T/G` as the main bandit optimization variable, but stated it as a cost-type reward / TPOT cost to be minimized.
+- Kept the structured `alpha_{i,tau}` learner: UCB is still applied to the shared acceptance parameter, not to independent per-`(i,g)` empirical costs.
+- Replaced the optimistic TPOT notation with `underline{J}_{i,g}` to emphasize that substituting `overline{alpha}` yields a lower cost estimate.
+- Clarified that standard maximization-reward notation can use `R=-J`, where `J=T/G`.
+- Changed terminal entropy-aware stopping from maximizing `G/T` to minimizing `T/G`.
+- Added observed TPOT metric `tilde{J}_t` for reporting while keeping UCB updates based on token-level acceptance labels.

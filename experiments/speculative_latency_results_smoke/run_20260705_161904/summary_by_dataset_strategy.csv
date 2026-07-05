@@ -1,0 +1,4 @@
+dataset,strategy,n,tpot_wall_ms_mean,tpot_wall_ms_std,tpot_cuda_ms_mean,speedup_vs_target_wall_mean,latency_reduction_wall_mean,acceptance_rate_mean,mean_uploaded_g,mean_generated_g,rounds_mean
+gsm8k,adaptive_entropy,1,23.178662173449993,0.0,23.172239303588867,0.5925674159960228,-0.6875716973386734,0.3333333333333333,1.0,2.0,3
+gsm8k,fixed_g2,1,42.61788818985224,0.0,42.612464904785156,0.322280632235467,-2.1028858081343618,0.25,2.0,2.0,3
+gsm8k,target_only,1,13.73491995036602,0.0,13.719847679138184,,,0.0,0.0,0.0,4

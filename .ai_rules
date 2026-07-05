@@ -1,0 +1,76 @@
+# AI Workstation Rules
+
+These rules define general working behavior for this workstation. They are not tied to any specific research topic.
+
+## Working Style
+
+- Be direct, pragmatic, and technically precise.
+- Prefer concrete actions over broad suggestions when the user asks for execution.
+- Read the local context before making assumptions.
+- Preserve the user's existing work; never revert unrelated changes.
+- Keep changes scoped to the user's request.
+- Explain important decisions briefly and clearly.
+
+## File and Report Workflow
+
+- Use a `report/` folder for durable reports, reviews, summaries, and decision records.
+- For every completed task, write or update a standalone Markdown report in `report/` so the user can inspect the work result from that folder.
+- Use a descriptive filename for each report.
+- For every Markdown report written in `report/`, automatically compile a same-name PDF next to it before finishing the task.
+- Use `python report/compile_report_pdf.py <report.md>` as the local report compiler. It converts Markdown math to MathML and renders PDF through WeasyPrint.
+- `pandoc` with `xelatex` is also acceptable if available.
+- A report task is not complete until its PDF has been generated and the PDF compilation result has been stated.
+- If no PDF-capable toolchain is available, first try to set up the toolchain when appropriate. If setup is not possible, clearly report the blocker and do not claim the report is fully complete.
+- Keep any report index or README updated when adding, removing, or renaming report files.
+- Avoid maintaining rolling answer-cache files such as `current_answer.md`.
+- Prefer archiving or summarizing important outcomes in `report/` rather than scattering notes across the workspace.
+
+## Investigation Workflow
+
+- Start by locating relevant files with `rg --files` or `rg`.
+- Read the smallest useful set of files before editing.
+- When reviewing, prioritize correctness, consistency, missing assumptions, edge cases, and verification gaps.
+- Distinguish clearly between facts found in files, inferred conclusions, and open questions.
+- If a document or codebase contains outdated statements, update or mark them so future work does not rely on stale context.
+
+## Editing Rules
+
+- Use targeted edits.
+- Do not rewrite whole files unless the task requires it.
+- Keep formatting consistent with nearby content.
+- Prefer ASCII unless the file already uses non-ASCII or the content requires it.
+- For Markdown with math, use `$...$` for inline math and `$$...$$` for display math.
+- Do not put formulas that should render as math inside code blocks or backticks.
+- Use code blocks only for literal code, commands, logs, or source snippets.
+
+## Verification
+
+- After edits, run the most relevant available checks.
+- For code, run targeted tests or linters when available.
+- For LaTeX or Markdown math, compile or render-check if tools are available; otherwise run consistency searches with `rg`.
+- For reports, verify both the Markdown source and the generated PDF. Confirm that the PDF exists after compilation.
+- If a tool is unavailable, state that explicitly.
+- Report what was verified and what remains unverified.
+
+## Command-Line Habits
+
+- Prefer `rg` over slower search tools.
+- Prefer concise, focused shell commands.
+- Avoid destructive commands unless the user explicitly asks for them.
+- Do not delete or overwrite user work without a clear reason and approval when appropriate.
+- Use `git status --short` before and after significant file changes.
+
+## Multi-Agent Work
+
+- Use multi-agent delegation only when the user explicitly asks for it or when parallel review is clearly requested.
+- Split delegated work into independent, well-scoped tasks.
+- Integrate results yourself and write the final report or patch coherently.
+- Do not leave subagent conclusions unmerged into the main workspace outcome.
+
+## Communication
+
+- Give short progress updates during longer work.
+- State blockers plainly.
+- In final responses, summarize changed files, key decisions, and verification status.
+- Do not over-explain routine edits.
+- Suggest follow-up only when it is directly useful.

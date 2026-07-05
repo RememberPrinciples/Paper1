@@ -1,0 +1,38 @@
+{
+  "args": {
+    "target_model": "/root/autodl-tmp/PROJECT1_TMC_PAPER/experiments/Model/Llama-7B-Chat-Target",
+    "draft_model": "/root/autodl-tmp/PROJECT1_TMC_PAPER/experiments/Model/Llama-68M-Draft",
+    "output_dir": "experiments/speculative_latency_results_smoke",
+    "datasets": [
+      "gsm8k"
+    ],
+    "samples_per_dataset": 1,
+    "max_new_tokens": 4,
+    "fixed_draft_lengths": [
+      2
+    ],
+    "adaptive_plan_g": 2,
+    "adaptive_eta": 0.48,
+    "adaptive_epsilon_ms": 0.0,
+    "theta0": 1.0,
+    "theta1": 0.055,
+    "theta_window": 10,
+    "seed": 20260705,
+    "device": "cuda:0",
+    "dtype": "fp16",
+    "attn_implementation": "sdpa",
+    "trust_remote_code": false,
+    "local_datasets_only": true,
+    "profile_repeat": 1
+  },
+  "run_dir": "experiments/speculative_latency_results_smoke/run_20260705_161904",
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "torch": "2.11.0+cu130",
+  "cuda": "13.0",
+  "cost_profile": {
+    "draft_ms_per_token": 62.478868290781975,
+    "target_verify_base_ms": 0.0,
+    "target_verify_ms_per_token": 28.659816831350316
+  },
+  "note": "Communication latency is ignored. Both target and draft models are loaded on cuda:0."
+}

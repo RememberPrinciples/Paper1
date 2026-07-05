@@ -5,7 +5,7 @@
 - 目标期刊级别：IEEE Transactions on Mobile Computing (TMC) 或同等级 SCI 期刊。
 - 研究主题：面向 LLM 推理的边缘-终端协同推测解码。
 - 当前核心想法：边缘侧部署目标模型，终端侧提供异构草稿模型；请求到达并分类后，边缘节点在任务-草稿模型接受率未知、终端负载变化、无线状态变化的条件下，用多臂赌博机选择协同推理草稿模型，并由被选草稿模型根据 token 熵自适应决定草稿序列长度。
-- 当前算法方向：边侧使用 UCB 学习不同任务下各草稿模型的平均 token 接受率，并按系统状态最大化平均每秒有效接受 token 数；终端侧维护接受率随 token 熵单调递减的线性曲线，用于动态起草停止。
+- 当前算法方向：边侧使用 UCB 学习不同任务下各草稿模型的平均 token 接受率，并按系统状态最小化平均有效 token 时延 $T/G$；这里 $T/G$ 是 cost-type reward，若使用标准“reward 越大越好”记号，可等价写为 $-T/G$。终端侧维护接受率随 token 熵单调递减的线性曲线，用于动态起草停止。
 
 ## 当前工作目标
 
@@ -18,20 +18,21 @@
 
 ## 当前模型状态
 
-- 已将请求级调度框架重构为两层决策：边侧服务器选择草稿模型 $d_i$，终端侧草稿模型自适应生成长度为 $g_t$ 的草稿序列。
+- 已将请求级调度框架重构为两层决策：边侧服务器选择 target-only fallback 或草稿模型-规划长度 $(d_i,g_t^{\mathrm{plan}})$，终端侧草稿模型在该规划长度上限内自适应生成长度为 $g_t$ 的草稿序列。
 - 旧版固定草稿长度 TPOT 基线为：
 $$
 J_{i,\gamma}(t)=\frac{T_{\mathrm{iter}}(d_i,\gamma\mid S(t))}{G(\alpha,\gamma)}.
 $$
-- 新版边侧模型选择指标为平均每秒有效接受 draft token 数：
+- 新版边侧模型选择指标为乐观平均有效 token 时延：
 $$
-U_i(t)=
+\underline{J}_{i,g}(t)=
 \frac{
-A(\overline{\alpha}_{i,\tau_t}(t),\widehat{g}_{i,\tau_t}(t))
+T_i^{\mathrm{round}}(g\mid t)
 }{
-T_i^{\mathrm{round}}(\widehat{g}_{i,\tau_t}(t)\mid t)
-}.
+G(\overline{\alpha}_{i,\tau_t}(t),g)
+},
 $$
+并在 $\{J_0(t)\}\cup\{\underline{J}_{i,g}(t)\}$ 中选择最小值。$\underline{J}_{i,g}(t)$ 是由 $\overline{\alpha}_{i,\tau}$ 诱导的乐观 TPOT cost 下界，不是对每个 $(i,g)$ 直接估计的普通 reward 均值。
 - prefill latency 在当前问题范围内与动作无关，因此暂不纳入优化目标。
 - 终端草稿模型推理时延已采用基于 profiling 的内存带宽退化抽象。
 - 无线通信时延使用有效上行吞吐率建模，并考虑 token ID 与 token 分布信息的上传负载：
@@ -40,14 +41,14 @@ S_{\mathrm{tok}} = S_{\mathrm{id}} + S_{\mathrm{dist}}.
 $$
 - 接受率学习已经修正为只使用目标模型实际验证过的 draft token。
 - 每轮推测解码中首个 rejected draft token 之后的 token 被视为 censored observation，不进入接受率估计。
-- 当前在线求解器为针对任务-草稿模型平均接受率的 UCB 草稿模型选择器。
+- 当前在线求解器为针对任务-草稿模型平均接受率的 UCB 草稿模型选择器，并已加入 target-only fallback 动作 $a_0$。
 - 已加入熵感知动态起草：每个 $(i,\tau)$ 维护单调递减线性曲线
 $$
 a_{i,\tau}(H)=
 \left[\theta_{i,\tau,0}-\theta_{i,\tau,1}H\right]_{[0,1]},
 \quad \theta_{i,\tau,1}\geq 0.
 $$
-- 草稿模型逐 token 计算分布熵，根据预测接受率和预测有效接受 token 速率动态停止起草。
+- 草稿模型逐 token 计算分布熵，根据预测接受率和预测 TPOT cost $\widehat{J}_\ell=T^{\mathrm{round}}(\ell\mid t)/\widehat{G}_\ell$ 动态停止起草；边侧规划长度 $g_t^{\mathrm{plan}}$ 作为终端本轮动态起草上限。
 - 请求结束后，使用目标模型实际验证过的 token 更新平均接受率，并使用最近 $10$ 个验证样本拟合修正熵-接受率线性曲线。
 - `docs/System_Model_and_Algorithm.tex` 当前可通过 XeLaTeX 编译生成 PDF。
 
@@ -56,8 +57,8 @@ $$
 ### 1. 理论闭环
 
 - 当前主线已经从固定草稿长度 structured UCB 切换为“边侧 UCB 选草稿模型 + 终端熵感知动态起草”。
-- 仍需为新模型补充严格 regret 或 oracle comparison：边侧 UCB 的 reward 不再是单纯接受率，而是包含负载、信道和预测草稿长度的有效接受 token 速率。
-- 需要界定 $\widehat{g}_{i,\tau}(t)$ 和熵曲线估计误差对模型选择 regret 的影响。
+- 已在主稿中补充 cost-type reward/regret 定义：接受率不是最终 reward，而是结构化未知参数；本文 MAB 优化量为 $J=T/G$，即越小越好的 TPOT cost-type reward；若需要标准 reward，可写为 $R=-J$。请求级 regret 为相对 oracle 动作的 TPOT cost 差。
+- 仍需进一步证明严格 regret 上界或 oracle comparison，并界定熵曲线估计误差、动态停止策略与选择性观测对 regret 的影响。
 
 ### 1.1 当前主线：基于草稿分布熵的动态草稿长度
 
@@ -81,10 +82,8 @@ $$
 
 ### 3. target-only fallback
 
-- 当前动作集合会强制系统使用分布式推测解码。
-- 需要加入 fallback action $a_0$ 或 $\gamma=0$。
-- fallback TPOT 应表示纯目标模型解码时的 TPOT。
-- 当无线代价过高、终端负载过重或接受率过低时，在线调度器应能选择 fallback。
+- 主稿已加入 fallback action $a_0$，fallback TPOT 为纯目标模型解码时的 $J_0(t)=T^{\mathrm{tar}}(t)$。
+- 后续仍需在实验中验证 fallback 被触发的条件，并将其作为 baseline 与调度动作一起汇报。
 
 ### 4. 目标模型验证时延
 
@@ -157,7 +156,7 @@ $$
 2. 为边侧 UCB 有效接受 token 速率选择规则补充 regret 或 oracle comparison 推导。
 3. 明确 $\widehat{g}_{i,\tau}(t)$ 的初始化、更新和误差界。
 4. 细化 $T^{\mathrm{ver}}(g,t)$ 为关于草稿长度、上下文长度和边缘侧负载的 profiling 函数。
-5. 加入 target-only fallback action，并推导其与协同推测解码的选择条件。
+5. 进一步推导 target-only fallback 与协同推测解码的选择条件，并在实验中验证。
 6. 基于已有实验数据拟合 $a_{i,\tau}(H)$，检验线性递减假设的拟合优度、置信区间和跨任务稳定性。
 7. 评估近 $10$ 次窗口拟合是否过短，并比较 $M=10,20,50$ 的稳定性与响应速度。
 8. 设计仿真与 profiling 流程，并确定所需数据集或 trace。
