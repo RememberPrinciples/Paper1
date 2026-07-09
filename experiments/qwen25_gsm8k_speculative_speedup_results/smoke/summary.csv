@@ -1,0 +1,3 @@
+phase,gamma,samples,output_tokens,wall_ms,tpot_ms,rounds,accepted_draft_tokens,verified_draft_tokens,proposed_draft_tokens,acceptance_rate,mean_prompt_tpot_ms,std_prompt_tpot_ms,speedup_vs_target,latency_reduction
+target_only,0,1,16,783.5855409502983,48.974096309393644,16,0,0,0,0.0,48.974096309393644,0.0,,
+speculative,4,1,16,639.6083347499371,39.975520921871066,5,11,13,15,0.8461538461538461,39.975520921871066,0.0,1.2251021420110964,0.18374153002587568

@@ -1,0 +1,50 @@
+{
+  "timestamp_utc": "2026-07-07T07:54:44",
+  "repo_root": "/root/autodl-tmp/PROJECT1_TMC_PAPER",
+  "output_dir": "experiments/qwen25_speculative_sampling_acceptance_results/formal_gamma4_t1_p1_n64",
+  "target_model": "/root/autodl-tmp/Model/Qwen2.5-32B-Instruct",
+  "draft_model": "/root/autodl-tmp/Model/Qwen2.5-1.5B-Instruct",
+  "datasets": [
+    "gsm8k",
+    "mbpp",
+    "wikitext"
+  ],
+  "dataset_specs": {
+    "gsm8k": {
+      "glob": "hub/datasets--gsm8k/snapshots/*/main/test-*.parquet",
+      "purpose": "math reasoning"
+    },
+    "mbpp": {
+      "glob": "hub/datasets--mbpp/snapshots/*/full/test-*.parquet",
+      "purpose": "code generation"
+    },
+    "wikitext": {
+      "glob": "hub/datasets--wikitext/snapshots/*/wikitext-103-raw-v1/test-*.parquet",
+      "purpose": "text continuation"
+    }
+  },
+  "hf_cache": "/root/autodl-tmp/PROJECT1_TMC_PAPER/experiments/hf_cache",
+  "samples_per_dataset": 64,
+  "actual_samples": {
+    "gsm8k": 64,
+    "mbpp": 64,
+    "wikitext": 64
+  },
+  "max_new_tokens": 128,
+  "gamma": 4,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "dtype": "float16",
+  "target_device": "cuda:0",
+  "draft_device": "cuda:1",
+  "effective_vocab_size": 151665,
+  "attn_implementation": "sdpa",
+  "seed": 20260707,
+  "torch": "2.11.0+cu130",
+  "cuda": "13.0",
+  "gpus": [
+    "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+  ],
+  "note": "Acceptance uses standard speculative sampling: min(1,p/q), with feedback counted through the accepted prefix plus first rejected token."
+}

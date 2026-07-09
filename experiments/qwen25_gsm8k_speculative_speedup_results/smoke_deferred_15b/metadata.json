@@ -1,0 +1,32 @@
+{
+  "timestamp_utc": "2026-07-07T10:03:59",
+  "repo_root": "/root/autodl-tmp/PROJECT1_TMC_PAPER",
+  "output_dir": "experiments/qwen25_gsm8k_speculative_speedup_results/smoke_deferred_15b",
+  "target_model": "/root/autodl-tmp/Model/Qwen2.5-32B-Instruct",
+  "draft_model": "/root/autodl-tmp/Model/Qwen2.5-1.5B-Instruct",
+  "dataset": "gsm8k",
+  "samples": 1,
+  "max_new_tokens": 16,
+  "batch_size": 1,
+  "alpha_gamma": 4,
+  "candidate_gammas": [
+    2,
+    4
+  ],
+  "optimal_gamma": 4,
+  "alpha_est": 0.7857142857142857,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "dtype": "float16",
+  "target_device": "cuda:0",
+  "draft_device": "cuda:1",
+  "defer_target_cache": true,
+  "effective_vocab_size": 151665,
+  "seed": 20260707,
+  "torch": "2.11.0+cu130",
+  "cuda": "13.0",
+  "gpus": [
+    "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+  ]
+}

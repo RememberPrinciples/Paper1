@@ -1,0 +1,38 @@
+{
+  "timestamp_utc": "2026-07-07T08:32:29",
+  "repo_root": "/root/autodl-tmp/PROJECT1_TMC_PAPER",
+  "output_dir": "experiments/qwen25_gsm8k_speculative_speedup_results/formal_n16_gamma_opt",
+  "target_model": "/root/autodl-tmp/Model/Qwen2.5-32B-Instruct",
+  "draft_model": "/root/autodl-tmp/Model/Qwen2.5-1.5B-Instruct",
+  "dataset": "gsm8k",
+  "samples": 16,
+  "max_new_tokens": 128,
+  "batch_size": 1,
+  "alpha_gamma": 4,
+  "candidate_gammas": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    10,
+    12
+  ],
+  "optimal_gamma": 8,
+  "alpha_est": 0.8863109048723898,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "dtype": "float16",
+  "target_device": "cuda:0",
+  "draft_device": "cuda:1",
+  "effective_vocab_size": 151665,
+  "seed": 20260707,
+  "torch": "2.11.0+cu130",
+  "cuda": "13.0",
+  "gpus": [
+    "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+  ]
+}

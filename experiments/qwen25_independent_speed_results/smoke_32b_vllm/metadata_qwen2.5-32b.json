@@ -1,0 +1,42 @@
+{
+  "timestamp_utc": "2026-07-06T09:39:45",
+  "repo_root": "/root/autodl-tmp/PROJECT1_TMC_PAPER",
+  "model_key": "qwen2.5-32b",
+  "model_label": "Qwen2.5-32B-Instruct",
+  "model_path": "/root/autodl-tmp/Model/Qwen2.5-32B-Instruct",
+  "backend": "vllm",
+  "tensor_parallel_size": 2,
+  "datasets": [
+    "gsm8k",
+    "mbpp",
+    "wikitext"
+  ],
+  "dataset_specs": {
+    "gsm8k": {
+      "glob": "hub/datasets--gsm8k/snapshots/*/main/test-*.parquet",
+      "purpose": "math reasoning"
+    },
+    "mbpp": {
+      "glob": "hub/datasets--mbpp/snapshots/*/full/test-*.parquet",
+      "purpose": "code generation"
+    },
+    "wikitext": {
+      "glob": "hub/datasets--wikitext/snapshots/*/wikitext-103-raw-v1/test-*.parquet",
+      "purpose": "text continuation"
+    }
+  },
+  "hf_cache": "/root/autodl-tmp/PROJECT1_TMC_PAPER/experiments/hf_cache",
+  "samples_per_dataset": 1,
+  "batch_size": 1,
+  "max_new_tokens": 1,
+  "max_input_tokens": 2048,
+  "repeats": 1,
+  "dtype": "float16",
+  "cuda_visible_devices": "0,1",
+  "offline_env": {
+    "HF_HOME": "/root/autodl-tmp/PROJECT1_TMC_PAPER/experiments/hf_cache",
+    "HF_DATASETS_CACHE": "/root/autodl-tmp/PROJECT1_TMC_PAPER/experiments/hf_cache/datasets",
+    "TRANSFORMERS_CACHE": "/root/autodl-tmp/PROJECT1_TMC_PAPER/experiments/hf_cache/hub",
+    "HF_HUB_OFFLINE": "1"
+  }
+}

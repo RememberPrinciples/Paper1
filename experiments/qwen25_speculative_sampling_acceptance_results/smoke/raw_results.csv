@@ -1,0 +1,4 @@
+timestamp_utc,dataset,dataset_purpose,prompt_index,gamma,max_new_tokens,generated_tokens,rounds,accepted_draft_tokens,verified_draft_tokens,proposed_draft_tokens,acceptance_rate,mean_accepted_per_round,mean_verified_per_round,mean_proposed_per_round,temperature,top_p,seed
+2026-07-07T07:33:02,gsm8k,math reasoning,886,4,8,8,4,4,7,16,0.5714285714285714,1.0,1.75,4.0,1.0,1.0,20260707
+2026-07-07T07:33:03,mbpp,code generation,219,4,8,10,2,8,8,8,1.0,4.0,4.0,4.0,1.0,1.0,20260707
+2026-07-07T07:33:03,wikitext,text continuation,2544,4,8,10,2,8,8,8,1.0,4.0,4.0,4.0,1.0,1.0,20260707

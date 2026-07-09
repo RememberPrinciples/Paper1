@@ -1,0 +1,3 @@
+phase,dataset,prompt_index,gamma,output_tokens,wall_ms,tpot_ms,rounds,accepted_draft_tokens,verified_draft_tokens,proposed_draft_tokens,acceptance_rate,mean_accepted_per_round,mean_verified_per_round,mean_proposed_per_round
+target_only,gsm8k,763,0,16,784.1481361538172,49.00925850961357,16,0,0,0,0.0,0.0,0.0,0.0
+speculative,gsm8k,763,4,16,481.24963976442814,30.07810248527676,5,11,13,15,0.8461538461538461,2.2,2.6,3.0

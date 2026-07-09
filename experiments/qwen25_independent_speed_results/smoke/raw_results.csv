@@ -1,0 +1,4 @@
+timestamp_utc,model_key,model_label,model_path,backend,tensor_parallel_size,dataset,dataset_purpose,repeat,batch_index,num_prompts,prompt_tokens,output_tokens,wall_s,output_tokens_per_s,total_tokens_per_s,max_new_tokens,batch_size
+2026-07-06T08:39:06,qwen2.5-1.5b,Qwen2.5-1.5B-Instruct,/root/autodl-tmp/Model/Qwen2.5-1.5B-Instruct,transformers,1,gsm8k,math reasoning,0,0,1,101,1,0.8287028446793556,1.2067051614706634,123.08392647000768,1,1
+2026-07-06T08:39:06,qwen2.5-1.5b,Qwen2.5-1.5B-Instruct,/root/autodl-tmp/Model/Qwen2.5-1.5B-Instruct,transformers,1,mbpp,code generation,0,0,1,57,1,0.012907899916172028,77.4719362943868,4493.372305074434,1,1
+2026-07-06T08:39:06,qwen2.5-1.5b,Qwen2.5-1.5B-Instruct,/root/autodl-tmp/Model/Qwen2.5-1.5B-Instruct,transformers,1,wikitext,text continuation,0,0,1,242,1,0.02355656772851944,42.4510060856328,10315.59447880877,1,1

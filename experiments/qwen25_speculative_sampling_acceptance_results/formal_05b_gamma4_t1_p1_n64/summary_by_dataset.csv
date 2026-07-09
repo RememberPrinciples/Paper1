@@ -1,0 +1,4 @@
+dataset,dataset_purpose,gamma,samples,total_generated_tokens,total_rounds,accepted_draft_tokens,verified_draft_tokens,proposed_draft_tokens,token_acceptance_rate,mean_prompt_acceptance_rate,std_prompt_acceptance_rate,mean_accepted_per_round,mean_verified_per_round,mean_proposed_per_round
+gsm8k,math reasoning,4,64,8303,2225,6078,7086,8900,0.8577476714648603,0.859030215689231,0.053198332485241404,2.731685393258427,3.1847191011235956,4.0
+mbpp,code generation,4,64,8304,2364,5940,7159,9456,0.8297248219025003,0.8310326294262183,0.05794221476389387,2.512690355329949,3.02834179357022,4.0
+wikitext,text continuation,4,64,8253,3120,5133,7470,12480,0.6871485943775101,0.6939630588077662,0.13977619354835516,1.6451923076923076,2.394230769230769,4.0

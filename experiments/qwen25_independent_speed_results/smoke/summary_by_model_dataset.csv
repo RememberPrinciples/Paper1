@@ -1,0 +1,4 @@
+model_key,model_label,backend,tensor_parallel_size,dataset,dataset_purpose,batches,prompts,prompt_tokens,output_tokens,wall_s,output_tokens_per_s,total_tokens_per_s,mean_batch_output_tokens_per_s,std_batch_output_tokens_per_s
+qwen2.5-1.5b,Qwen2.5-1.5B-Instruct,transformers,1,gsm8k,math reasoning,1,1,101,1,0.8287028446793556,1.2067051614706634,123.08392647000768,1.2067051614706634,0.0
+qwen2.5-1.5b,Qwen2.5-1.5B-Instruct,transformers,1,mbpp,code generation,1,1,57,1,0.012907899916172028,77.4719362943868,4493.372305074434,77.4719362943868,0.0
+qwen2.5-1.5b,Qwen2.5-1.5B-Instruct,transformers,1,wikitext,text continuation,1,1,242,1,0.02355656772851944,42.4510060856328,10315.59447880877,42.4510060856328,0.0

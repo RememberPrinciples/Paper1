@@ -121,3 +121,13 @@ Updated the MAB objective wording after multi-agent review of the user's `T/G` r
 - Clarified that standard maximization-reward notation can use `R=-J`, where `J=T/G`.
 - Changed terminal entropy-aware stopping from maximizing `G/T` to minimizing `T/G`.
 - Added observed TPOT metric `tilde{J}_t` for reporting while keeping UCB updates based on token-level acceptance labels.
+
+## 2026-07-09
+
+Workspace maintenance update:
+
+- Moved model and dataset download scripts from `experiments/` to `download_scripts/`.
+- Moved Llama-family local model directories from `experiments/Model/` to `/root/autodl-tmp/Model/`.
+- Removed Llama latency experiment scripts, result directories, and related HuggingFace cache entries from `experiments/`.
+- Cleared historical files from `report/` per the current cleanup request.
+- Added `docs/Makefile` and `docs/README.md` so `System_Model_and_Algorithm.tex` can be rebuilt with `make -C docs` when a XeLaTeX-capable TeX installation is available.
